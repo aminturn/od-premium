@@ -31,15 +31,15 @@ public class OrderMonitorData {
     //75314KYGAMC4P
 
 //Scooters merchant credentials
-//    private static String mId = "75314KYGAMC4P";
-//    private static String token = "02da5d87-8240-2a5d-38d0-f6bfa4e8627d";
+    private static String mId = "75314KYGAMC4P";
+    private static String token = "02da5d87-8240-2a5d-38d0-f6bfa4e8627d";
 
 //TruBeacon, Inc merchant credentials
     //private static String mId = "N0H6K4ZCTSW1P";
     //private static String token = "77b77258-4de3-cf35-2c4f-d856ba598cec";
 
-    private static String mId = "";
-    private static String token = "";
+    //private static String mId = "";
+    //private static String token = "";
 
     private static String ORDER_DONE_KEY = "#trubeacon_ordermonitor_done";
 
@@ -65,9 +65,9 @@ public class OrderMonitorData {
         DateTime stop = DateTime.now();
 
         //get merchant id and token from shared preferences
-        SharedPreferences sp = PreferenceManager.getDefaultSharedPreferences(OrderMonitorGUI.getAppContext());
-        mId = sp.getString(mContext.getString(R.string.merchant_id_key),mContext.getString(R.string.default_merchant));
-        token = sp.getString(mContext.getString(R.string.saved_token_key),mContext.getString(R.string.default_token));
+//        SharedPreferences sp = PreferenceManager.getDefaultSharedPreferences(OrderMonitorGUI.getAppContext());
+//        mId = sp.getString(mContext.getString(R.string.merchant_id_key),mContext.getString(R.string.default_merchant));
+//        token = sp.getString(mContext.getString(R.string.saved_token_key),mContext.getString(R.string.default_token));
 
         Log.v("merchant Id",mId);
         Log.v("token",token);
@@ -141,7 +141,7 @@ public class OrderMonitorData {
             }
         });
     }
-    
+
     private void updateProgressOrdersList(List<Order> allOrders){
 
         if(allOrders!=null) {
