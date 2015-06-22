@@ -1,0 +1,9 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <color name = "title_color">#ffa4f3ff</color>
+    <color name = "background">#ff8392ff</color>
+    <color name = "white">#FFFFFFFF</color>
+    <color name = "dark_blue">#ff8392ff</color>
+    <!--<color name = "dark_blue">#ff2020be</color>-->
+    <color name = "grey">#e3e3e3e3</color>
+</resources>

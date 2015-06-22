@@ -1,0 +1,59 @@
+<?xml version="1.0" encoding="utf-8"?>
+<PreferenceScreen xmlns:android="http://schemas.android.com/apk/res/android">
+
+    <PreferenceCategory
+        android:title = "@string/merchant_credentials_category">
+
+        <Preference
+            android:title = "@string/connect_to_clover"
+            android:key = "@string/clover_pref_key"/>
+
+    </PreferenceCategory>
+
+
+    <PreferenceCategory
+        android:title = "@string/display_settings">
+
+            <ListPreference
+            android:key="@string/display_pref"
+            android:title="@string/number_of_orders_display"
+            android:entries="@array/display_sizes"
+            android:entryValues="@array/display_values"
+            android:defaultValue="@string/five"
+            android:summary=""/>
+
+            <ListPreference
+            android:key = "@string/font_size_pref"
+            android:title = "@string/font_pref_title"
+            android:entries = "@array/font_pref_array"
+            android:entryValues="@array/font_pref_values_array"
+            android:defaultValue="@string/font_large"/>
+
+    </PreferenceCategory>
+
+    <PreferenceCategory
+        android:title = "@string/order_type_settings">
+
+        <CheckBoxPreference
+            android:key = "@string/dine_in_preference"
+            android:title = "@string/show_dine_in_orders"
+            android:defaultValue="true"/>
+
+        <CheckBoxPreference
+            android:key = "@string/to_go_preference"
+            android:title = "@string/show_to_go_orders"
+            android:defaultValue="true"/>
+
+        <CheckBoxPreference
+            android:key = "@string/phone_in_preference"
+            android:title="@string/show_phone_in_orders"
+            android:defaultValue="true"/>
+
+        <CheckBoxPreference
+            android:key = "@string/catering_preference"
+            android:title="@string/show_catering_orders"
+            android:defaultValue="true"/>
+
+    </PreferenceCategory>
+
+</PreferenceScreen>
