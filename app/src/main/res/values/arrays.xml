@@ -12,15 +12,59 @@
     </array>
 
     <array name = "font_pref_array">
-        <item>@string/font_small</item>
-        <item>@string/font_medium</item>
-        <item>@string/font_large</item>
+        <item>@string/sp10</item>
+        <item>@string/sp15</item>
+        <item>@string/sp20</item>
+        <item>@string/sp25</item>
+        <item>@string/sp30</item>
+        <item>@string/sp35</item>
+        <item>@string/sp40</item>
+        <item>@string/sp45</item>
+        <item>@string/sp50</item>
+        <item>@string/sp55</item>
+        <item>@string/sp60</item>
     </array>
 
     <array name = "font_pref_values_array">
-        <item>@string/font_small</item>
-        <item>@string/font_medium</item>
-        <item>@string/font_large</item>
+        <item>@string/str10</item>
+        <item>@string/str15</item>
+        <item>@string/str20</item>
+        <item>@string/str25</item>
+        <item>@string/str30</item>
+        <item>@string/str35</item>
+        <item>@string/str40</item>
+        <item>@string/str45</item>
+        <item>@string/str50</item>
+        <item>@string/str55</item>
+        <item>@string/str60</item>
+    </array>
+
+
+    <array name = "order_type_entry_vals">
+    </array>
+
+    <array name = "order_type_color">
+        <item>@string/blue</item>
+        <item>@string/green</item>
+        <item>@string/red</item>
+    </array>
+
+    <array name = "order_type_color_vals">
+        <item>@string/bluecode</item>
+        <item>@string/greencode</item>
+        <item>@string/redcode</item>
+    </array>
+
+    <array name = "origin_device_color">
+        <item>@string/white</item>
+        <item>@string/lightblue</item>
+        <item>@string/lightgreen</item>
+    </array>
+
+    <array name = "origin_device_color_vals">
+        <item>@string/whitecode</item>
+        <item>@string/lightbluecode</item>
+        <item>@string/lightgreencode</item>
     </array>
 
 </resources>

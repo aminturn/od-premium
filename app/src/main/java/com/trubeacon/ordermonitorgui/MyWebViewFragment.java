@@ -21,6 +21,7 @@ import com.tru.clover.api.client.error.*;
 /**
  * Created by Andrew on 5/20/15.
  */
+
 public class MyWebViewFragment extends Fragment {
 
 //    MMGZVXP1ARPEC
@@ -28,10 +29,10 @@ public class MyWebViewFragment extends Fragment {
 //    merchant id: V258CNZXRRXVE
 //    token: afd0b9e2-3d4a-f469-3f1a-233632e7a9ce
 
-
     private static String appId = "MMGZVXP1ARPEC";
     private static String redirectUri = "https://order-display.trubeacon.com";
     private static String APP_SECRET = "92922db0-c52d-fcca-6035-c8797d6e2626";
+    private OrderMonitorData orderMonitorData = OrderMonitorData.getOrderMonitorData();
 
     @Nullable
     @Override
@@ -81,8 +82,7 @@ public class MyWebViewFragment extends Fragment {
 
                         String merchantId = url.substring(merchantIdStart + merchantIdFragment.length(), employeeIdStart);
 
-                        SharedPreferences sp = PreferenceManager.getDefaultSharedPreferences(getActivity());
-                        sp.edit().putString(getString(R.string.merchant_id_key),merchantId).commit();
+                        orderMonitorData.setmId(merchantId);
 
 
 
@@ -92,8 +92,7 @@ public class MyWebViewFragment extends Fragment {
 
                                 Log.v("the token is", accessToken.getToken());
 
-                                SharedPreferences sp = PreferenceManager.getDefaultSharedPreferences(getActivity());
-                                sp.edit().putString(getString(R.string.saved_token_key), accessToken.getToken()).commit();
+                                orderMonitorData.setToken(accessToken.getToken());
 
                                 getActivity().onBackPressed();
 

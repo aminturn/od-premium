@@ -1,5 +1,7 @@
 <?xml version="1.0" encoding="utf-8"?>
-<PreferenceScreen xmlns:android="http://schemas.android.com/apk/res/android">
+<PreferenceScreen
+    xmlns:android="http://schemas.android.com/apk/res/android"
+    android:key = "@string/preference_screen_key">
 
     <PreferenceCategory
         android:title = "@string/merchant_credentials_category">
@@ -27,33 +29,43 @@
             android:title = "@string/font_pref_title"
             android:entries = "@array/font_pref_array"
             android:entryValues="@array/font_pref_values_array"
-            android:defaultValue="@string/font_large"/>
+            android:defaultValue="@string/str20"/>
+
+        <CheckBoxPreference
+            android:key = "@string/display_order_type_pref"
+            android:title = "@string/display_order_type_pref_title"/>
+
+        <CheckBoxPreference
+            android:key = "@string/display_device_pref"
+            android:title = "@string/display_device_pref_title"/>
 
     </PreferenceCategory>
 
     <PreferenceCategory
-        android:title = "@string/order_type_settings">
+        android:title = "@string/order_filtering_settings">
 
-        <CheckBoxPreference
-            android:key = "@string/dine_in_preference"
-            android:title = "@string/show_dine_in_orders"
-            android:defaultValue="true"/>
+        <MultiSelectListPreference
+            android:background = "@color/background"
+            android:title = "@string/order_type_title"
+            android:key = "@string/order_type_pref"
+            android:enabled="false"
+            android:summary = "Select which Clover order types to display on this device"
+            android:defaultValue = "@array/order_type_entry_vals"/>
 
-        <CheckBoxPreference
-            android:key = "@string/to_go_preference"
-            android:title = "@string/show_to_go_orders"
-            android:defaultValue="true"/>
 
-        <CheckBoxPreference
-            android:key = "@string/phone_in_preference"
-            android:title="@string/show_phone_in_orders"
-            android:defaultValue="true"/>
-
-        <CheckBoxPreference
-            android:key = "@string/catering_preference"
-            android:title="@string/show_catering_orders"
-            android:defaultValue="true"/>
+        <MultiSelectListPreference
+            android:title = "@string/devices_title"
+            android:key = "@string/devices_pref"
+            android:enabled = "false"
+            android:summary = "Select Clover stations from which to display orders"
+            android:defaultValue="@array/order_type_entry_vals"/>
 
     </PreferenceCategory>
+
+        <PreferenceScreen
+            android:key = "@string/color_settings"
+            android:title = "@string/color_settings"
+            android:summary= "@string/color_pref_screen_summary">
+        </PreferenceScreen>
 
 </PreferenceScreen>

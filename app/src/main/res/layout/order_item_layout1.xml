@@ -19,8 +19,8 @@
         <TextView
             android:id = "@+id/order_detail_text"
             android:layout_below="@id/order_id_text"
-            android:layout_width="wrap_content"
-            android:layout_height="wrap_content"
+            android:layout_width="match_parent"
+            android:layout_height="match_parent"
             android:padding = "16dp"
             android:text = "Small Coffee"/>
 

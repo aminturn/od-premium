@@ -6,6 +6,7 @@ import android.content.BroadcastReceiver;
 import android.content.Context;
 import android.content.Intent;
 import android.content.SharedPreferences;
+import android.graphics.Color;
 import android.os.Bundle;
 import android.os.Handler;
 import android.preference.PreferenceManager;
@@ -47,7 +48,8 @@ public class DoneOrdersFragment extends Fragment {
 
         private float fontSize;
         private boolean twoRows;
-        //private String dineInCarryoutBoth;
+        private boolean showOrderType;
+        private boolean showDevice;
 
         private Integer screenWidthDp;
         private OrderMonitorData orderMonitorData = OrderMonitorData.getOrderMonitorData();
@@ -84,13 +86,10 @@ public class DoneOrdersFragment extends Fragment {
 
             String fontSizeString = sharedPref.getString(FONT_SIZE_KEY,"");
 
-            if(fontSizeString.equals("Small")){
-                fontSize = 20;
-            }else if(fontSizeString.equals("Medium")){
-                fontSize = 40;
-            }else{
-                fontSize = 60;
-            }
+            fontSize = Integer.parseInt(fontSizeString);
+
+            showOrderType = sharedPref.getBoolean(getString(R.string.display_order_type_pref),true);
+            showDevice = sharedPref.getBoolean(getString(R.string.display_device_pref),true);
 
             //dineInCarryoutBoth = sharedPref.getString(ORDER_TYPE_KEY, "");
 
@@ -164,8 +163,28 @@ public class DoneOrdersFragment extends Fragment {
 
                     String topLabel = "";
 
-                    if(topOrder.getOrderType()!=null) {
+                    if(topOrder.getOrderType()!=null&&showOrderType) {
                         topLabel = topOrder.getOrderType().getLabel();
+                    }
+
+                    String origin = "";
+
+                    if(topOrder.getDevice().getId()!=null&&showDevice){
+                        origin = orderMonitorData.getDeviceNamefromId(topOrder.getDevice().getId());
+                    }
+
+                    SharedPreferences sp = PreferenceManager.getDefaultSharedPreferences(getActivity());
+
+                    int titleBgColor1 = getResources().getColor(R.color.background);
+                    if(topOrder.getOrderType()!=null) {
+                        String titleColor1 = sp.getString(topOrder.getOrderType().getLabel(), getString(R.string.backgroundcode));
+                        titleBgColor1 = Color.parseColor(titleColor1);
+                    }
+
+                    int bodyBgColor1 = getResources().getColor(R.color.white);
+                    if(topOrder.getDevice()!=null){
+                        String bodyColor1 = sp.getString(topOrder.getDevice().getId(),getString(R.string.white));
+                        bodyBgColor1 = Color.parseColor(bodyColor1);
                     }
 
                     String detailString = "";
@@ -191,23 +210,32 @@ public class DoneOrdersFragment extends Fragment {
 
                     TextView orderTitleText = (TextView) relativeLayoutTop.findViewById(R.id.order_id_text);
                     TextView orderDetailText = (TextView) relativeLayoutTop.findViewById(R.id.order_detail_text);
+                    Button topDoneButton = (Button) relativeLayoutTop.findViewById(R.id.done_button);
 
                     orderTitleText.setTextSize(fontSize);
+                    orderTitleText.setBackgroundColor(titleBgColor1);
                     orderDetailText.setTextSize(fontSize);
+                    orderDetailText.setBackgroundColor(bodyBgColor1);
+                    topDoneButton.setBackgroundColor(titleBgColor1);
 
                     orderDetailText.setMovementMethod(new ScrollingMovementMethod());
 
                     DateTime orderCreated = new DateTime(topOrder.getCreatedTime());
                     String timeCreatedString = DateTimeFormat.forPattern("hh:mm:ss a").print(orderCreated);
 
-                    timeCreatedString = timeCreatedString + "\r\n" + topLabel;
+
+                    if(showOrderType) {
+                        timeCreatedString = timeCreatedString + "\r\n" + topLabel;
+                    }
+
+                    if(showDevice){
+                        timeCreatedString = timeCreatedString + "\r\n" + origin;
+                    }
 
 
                     orderTitleText.setText(timeCreatedString);
                     orderDetailText.setText(detailString);
 
-
-                    Button topDoneButton = (Button) relativeLayoutTop.findViewById(R.id.done_button);
                     //add a index as a tag to reference the order in the click listener
                     topDoneButton.setTag(topId);
 
@@ -250,24 +278,52 @@ public class DoneOrdersFragment extends Fragment {
 
                         String bottomLabel = "";
 
-                        if(bottomOrder.getOrderType()!=null) {
+                        if(bottomOrder.getOrderType()!=null&&showOrderType) {
                             bottomLabel = bottomOrder.getOrderType().getLabel();
+                        }
+
+                        String bottomOrigin = "";
+
+                        if(bottomOrder.getDevice().getId()!=null){
+                            bottomOrigin = orderMonitorData.getDeviceNamefromId(bottomOrder.getDevice().getId());
+                        }
+
+                        int titleBgColor2 = getResources().getColor(R.color.background);
+                        if(bottomOrder.getOrderType()!=null) {
+                            String titleColor2 = sp.getString(bottomOrder.getOrderType().getLabel(), getString(R.string.backgroundcode));
+                            titleBgColor2 = Color.parseColor(titleColor2);
+                        }
+
+                        int bodyBgColor2 = getResources().getColor(R.color.white);
+                        if(bottomOrder.getDevice()!=null){
+                            String bodyColor2 = sp.getString(bottomOrder.getDevice().getId(),getString(R.string.white));
+                            bodyBgColor2 = Color.parseColor(bodyColor2);
                         }
 
                         String detailString2 = "";
 
                         TextView orderTitleText2 = (TextView) relativeLayoutBottom.findViewById(R.id.order_id_text2);
                         TextView orderDetailText2 = (TextView) relativeLayoutBottom.findViewById(R.id.order_detail_text2);
+                        Button bottomDoneButton = (Button) relativeLayoutBottom.findViewById(R.id.done_button2);
 
                         orderTitleText2.setTextSize(fontSize);
+                        orderTitleText2.setBackgroundColor(titleBgColor2);
                         orderDetailText2.setTextSize(fontSize);
+                        orderDetailText2.setBackgroundColor(bodyBgColor2);
+                        bottomDoneButton.setBackgroundColor(titleBgColor2);
 
                         orderDetailText2.setMovementMethod(new ScrollingMovementMethod());
 
                         DateTime orderCreated2 = new DateTime(bottomOrder.getCreatedTime());
                         String timeCreatedString2 = DateTimeFormat.forPattern("hh:mm:ss a").print(orderCreated2);
 
-                        timeCreatedString2 = timeCreatedString2 + "\r\n" + bottomLabel;
+                        if (showOrderType) {
+                            timeCreatedString2 = timeCreatedString2 + "\r\n" + bottomLabel;
+                        }
+
+                        if(showDevice){
+                            timeCreatedString2 = timeCreatedString2 + "\r\n" + bottomOrigin;
+                        }
 
                         orderTitleText2.setText(timeCreatedString2);
 
@@ -289,7 +345,6 @@ public class DoneOrdersFragment extends Fragment {
 
                         orderDetailText2.setText(detailString2);
 
-                        Button bottomDoneButton = (Button) relativeLayoutBottom.findViewById(R.id.done_button2);
                         bottomDoneButton.setTag(bottomId);
 
                         bottomDoneButton.setOnClickListener(new View.OnClickListener() {
@@ -343,8 +398,28 @@ public class DoneOrdersFragment extends Fragment {
 
                 String label = "";
 
-                if(thisOrder.getOrderType()!=null) {
+                if(thisOrder.getOrderType()!=null&&showOrderType) {
                     label = thisOrder.getOrderType().getLabel();
+                }
+
+                String origin = "";
+
+                if(thisOrder.getDevice().getId()!=null&&showDevice){
+                    origin = orderMonitorData.getDeviceNamefromId(thisOrder.getDevice().getId());
+                }
+
+                SharedPreferences sp = PreferenceManager.getDefaultSharedPreferences(getActivity());
+
+                int titleBgColor = getResources().getColor(R.color.background);
+                if(thisOrder.getOrderType()!=null) {
+                    String titleColor = sp.getString(thisOrder.getOrderType().getLabel(), getString(R.string.backgroundcode));
+                    titleBgColor = Color.parseColor(titleColor);
+                }
+
+                int bodyBgColor = getResources().getColor(R.color.white);
+                if(thisOrder.getDevice()!=null){
+                    String bodyColor = sp.getString(thisOrder.getDevice().getId(),getString(R.string.white));
+                    bodyBgColor = Color.parseColor(bodyColor);
                 }
 
                 RelativeLayout relativeLayout= new RelativeLayout(getActivity());
@@ -354,16 +429,26 @@ public class DoneOrdersFragment extends Fragment {
 
                 TextView orderTitleText = (TextView) relativeLayout.findViewById(R.id.order_id_text);
                 TextView orderDetailText = (TextView) relativeLayout.findViewById(R.id.order_detail_text);
+                Button doneButton = (Button) relativeLayout.findViewById(R.id.done_button);
 
                 orderTitleText.setTextSize(fontSize);
+                orderTitleText.setBackgroundColor(titleBgColor);
                 orderDetailText.setTextSize(fontSize);
+                orderDetailText.setBackgroundColor(bodyBgColor);
+                doneButton.setBackgroundColor(titleBgColor);
 
                 orderDetailText.setMovementMethod(new ScrollingMovementMethod());
 
                 DateTime orderCreated = new DateTime(thisOrder.getCreatedTime());
                 String timeCreatedString = DateTimeFormat.forPattern("hh:mm:ss a").print(orderCreated);
 
-                timeCreatedString = timeCreatedString + "\r\n" + label;
+                if(showOrderType) {
+                    timeCreatedString = timeCreatedString + "\r\n" + label;
+                }
+
+                if(showDevice){
+                    timeCreatedString = timeCreatedString + "\r\n" + origin;
+                }
 
                 orderTitleText.setText(timeCreatedString);
 
@@ -388,7 +473,6 @@ public class DoneOrdersFragment extends Fragment {
 
                 orderDetailText.setText(detailString);
 
-                Button doneButton = (Button) relativeLayout.findViewById(R.id.done_button);
                 doneButton.setTag(i);
 
                 doneButton.setOnClickListener(new View.OnClickListener() {

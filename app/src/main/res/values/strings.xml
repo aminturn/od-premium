@@ -48,4 +48,82 @@
     <string name = "phone_in_preference">phone_in_preference</string>
     <string name = "show_phone_in_orders">Show Phone In Orders</string>
 
+    <string name = "preference_screen_key">prefstringkey</string>
+
+    <string name = "show">Show</string>
+
+    <string name = "order_filtering_settings">Order Filtering Settings</string>
+
+    <string name = "order_type_title">Order Types</string>
+
+    <string name = "devices_title">Devices</string>
+
+    <string name = "devices_pref">devices_pref</string>
+
+    <string name = "no_devices_string">Connect Clover devices with your merchant account to enable</string>
+
+    <string name = "no_order_types_string">Add Order Types to your Clover account to enable</string>
+
+    <string name = "devices_enabled_summary">Select Clover stations from which to display orders</string>
+
+    <string name = "order_types_enabled_summary">Select which Clover order types to display on this device</string>
+
+    <string name = "display_order_type_pref">display_order_type_pref</string>
+    <string name = "display_order_type_pref_title">Display Order Type Title</string>
+
+    <string name = "display_device_pref">display_device_pref</string>
+    <string name = "display_device_pref_title">Display Order Origin Title</string>
+
+    <string name = "sp10">10 sp</string>
+    <string name = "sp15">15 sp</string>
+    <string name = "sp20">20 sp</string>
+    <string name = "sp25">25 sp</string>
+    <string name = "sp30">30 sp</string>
+    <string name = "sp35">35 sp</string>
+    <string name = "sp40">40 sp</string>
+    <string name = "sp45">45 sp</string>
+    <string name = "sp50">50 sp</string>
+    <string name = "sp55">55 sp</string>
+    <string name = "sp60">60 sp</string>
+
+    <string name = "str10">10</string>
+    <string name = "str15">15</string>
+    <string name = "str20">20</string>
+    <string name = "str25">25</string>
+    <string name = "str30">30</string>
+    <string name = "str35">35</string>
+    <string name = "str40">40</string>
+    <string name = "str45">45</string>
+    <string name = "str50">50</string>
+    <string name = "str55">55</string>
+    <string name = "str60">60</string>
+
+    <string name = "color_settings">Color Settings</string>
+    <string name = "order_type_colors">Order Type Colors</string>
+    <string name = "device_type_colors">Order Origin Colors</string>
+
+    <string name = "blue">Blue</string>
+    <string name = "green">Green</string>
+    <string name = "red">Red</string>
+
+    <string name = "color_pref_screen_summary">Choose colors to quickly identify order types and origins</string>
+
+    <string name = "color_cat_title">Display Colors</string>
+
+    <string name = "bluecode">#1022E8</string>
+    <string name = "greencode">#10E829</string>
+    <string name = "redcode">#E81038</string>
+    <string name = "backgroundcode">#ff8392ff</string>
+
+    <string name = "whitecode">#FFFFFF</string>
+    <string name = "lightbluecode">#B1F1F2</string>
+    <string name = "lightgreencode">#C3F2B1</string>
+
+    <string name = "white">White</string>
+    <string name = "lightblue">Light Blue</string>
+    <string name = "lightgreen">Light Green</string>
+
+
+
+
 </resources>
