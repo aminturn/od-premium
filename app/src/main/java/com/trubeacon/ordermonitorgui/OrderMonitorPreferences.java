@@ -25,14 +25,18 @@ import com.tru.clover.api.merchant.Devices;
 import com.tru.clover.api.order.Order;
 import com.tru.clover.api.order.OrderType;
 
+import java.util.Arrays;
+import java.util.HashSet;
 import java.util.List;
-
+import java.util.Set;
 
 
 public class OrderMonitorPreferences extends PreferenceFragment implements SharedPreferences.OnSharedPreferenceChangeListener, Refreshable {
 
     private static String actionBarTitle = "Order Display Settings";
     private static String CLOVER_PREF_KEY = "clover_pref_key";
+    private static String ORDER_TYPE_FIRST_TIME = "order_type_first_time";
+    private static String DEVICE_FIRST_TIME = "device_first_time";
     private OrderMonitorData orderMonitorData = OrderMonitorData.getOrderMonitorData();
 
     private List<Device> deviceList;
@@ -206,6 +210,7 @@ public class OrderMonitorPreferences extends PreferenceFragment implements Share
             orderTypePref.setEnabled(false);
             orderTypePref.setSummary(R.string.no_order_types_string);
         }
+
     }
 
 
@@ -236,6 +241,18 @@ public class OrderMonitorPreferences extends PreferenceFragment implements Share
 
         orderTypePref.setEntries(entries);
         orderTypePref.setEntryValues(entryVals);
+
+        SharedPreferences sp = PreferenceManager.getDefaultSharedPreferences(getActivity());
+        if(sp.getBoolean(ORDER_TYPE_FIRST_TIME,true)){
+
+            Set<String> valSet = new HashSet<String>(Arrays.asList(entryVals));
+
+            orderTypePref.setValues(valSet);
+
+            sp.edit().putBoolean(ORDER_TYPE_FIRST_TIME,false).apply();
+        }
+
+
     }
 
     private void updateDevicePreferences(){
@@ -273,6 +290,16 @@ public class OrderMonitorPreferences extends PreferenceFragment implements Share
 
         devicePref.setEntries(entries);
         devicePref.setEntryValues(entryVals);
+
+        SharedPreferences sp = PreferenceManager.getDefaultSharedPreferences(getActivity());
+        if(sp.getBoolean(DEVICE_FIRST_TIME,true)){
+
+            Set<String> valSet = new HashSet<String>(Arrays.asList(entryVals));
+
+            devicePref.setValues(valSet);
+
+            sp.edit().putBoolean(DEVICE_FIRST_TIME,false).apply();
+        }
 
     }
 }

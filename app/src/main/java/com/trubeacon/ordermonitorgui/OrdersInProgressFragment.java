@@ -165,7 +165,7 @@ public class OrdersInProgressFragment extends Fragment {
 
         //get display preferences
 
-        String ordersToDisplay = sharedPref.getString(DISPLAY_KEY, "");
+        String ordersToDisplay = sharedPref.getString(DISPLAY_KEY, "5");
 
         if (ordersToDisplay.equals(getString(R.string.five))) {
             twoRows = false;
@@ -173,7 +173,7 @@ public class OrdersInProgressFragment extends Fragment {
             twoRows = true;
         }
 
-        String fontSizeString = sharedPref.getString(FONT_SIZE_KEY, "");
+        String fontSizeString = sharedPref.getString(FONT_SIZE_KEY, "30");
 
         fontSize = Integer.parseInt(fontSizeString);
 
@@ -308,7 +308,6 @@ public class OrdersInProgressFragment extends Fragment {
                 DateTime orderCreated = new DateTime(topOrder.getCreatedTime());
                 String timeCreatedString = DateTimeFormat.forPattern("hh:mm:ss a").print(orderCreated);
 
-                //TODO:check again here for showing order and origin
                 if(showOrderType) {
                     timeCreatedString = timeCreatedString + "\r\n" + label;
                 }

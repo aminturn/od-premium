@@ -76,7 +76,7 @@ public class DoneOrdersFragment extends Fragment {
 
             //get display preferences
             SharedPreferences sharedPref = PreferenceManager.getDefaultSharedPreferences(getActivity());
-            String ordersToDisplay = sharedPref.getString(DISPLAY_KEY, "");
+            String ordersToDisplay = sharedPref.getString(DISPLAY_KEY, "5");
 
             if (ordersToDisplay.equals(getResources().getString(R.string.five))) {
                 twoRows = false;
@@ -84,7 +84,7 @@ public class DoneOrdersFragment extends Fragment {
                 twoRows = true;
             }
 
-            String fontSizeString = sharedPref.getString(FONT_SIZE_KEY,"");
+            String fontSizeString = sharedPref.getString(FONT_SIZE_KEY,"30");
 
             fontSize = Integer.parseInt(fontSizeString);
 
