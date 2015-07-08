@@ -145,7 +145,7 @@ public class OrderMonitorData {
 
         Log.v("merchant Id",mId);
         Log.v("token", token);
-
+        
 
         if(mId.equals("")||token.equals("")){
             Toast.makeText(OrderMonitorGUI.getAppContext(), "Please connect to your Clover account from the Settings menu", Toast.LENGTH_LONG).show();
