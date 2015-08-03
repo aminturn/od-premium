@@ -25,13 +25,10 @@
             android:textColor = "@color/white"
             android:text = "Order ID"/>
 
-        <TextView
-            android:id = "@+id/order_detail_text"
-            android:layout_below="@id/order_id_text"
+        <ListView
+            android:id = "@+id/line_item_list"
             android:layout_width="match_parent"
-            android:layout_height="match_parent"
-            android:padding = "2dp"
-            android:text = "Small Coffee"/>
+            android:layout_height="wrap_content"/>
 
         <Button
             android:id = "@+id/done_button"

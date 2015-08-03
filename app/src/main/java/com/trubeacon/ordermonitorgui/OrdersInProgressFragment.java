@@ -32,6 +32,7 @@ import android.view.ViewGroup;
 import android.widget.Button;
 import android.widget.FrameLayout;
 import android.widget.LinearLayout;
+import android.widget.ListView;
 import android.widget.RelativeLayout;
 import android.widget.TextView;
 
@@ -662,6 +663,8 @@ public class OrdersInProgressFragment extends Fragment {
                 titleBgColor = Color.parseColor(titleColor);
             }
 
+
+            //TODO: apply this to the listview?
             int bodyBgColor = getResources().getColor(R.color.white);
             if(thisOrder.getDevice()!=null){
                 String bodyColor = sp.getString(thisOrder.getDevice().getId(),getString(R.string.white));
@@ -669,7 +672,7 @@ public class OrdersInProgressFragment extends Fragment {
             }
 
             TextView orderTitleText = (TextView) relativeLayout.findViewById(R.id.order_id_text);
-            TextView orderDetailText = (TextView) relativeLayout.findViewById(R.id.order_detail_text);
+            ListView lineItemLv = (ListView) relativeLayout.findViewById(R.id.line_item_list);
             TextView countdownText = (TextView) relativeLayout.findViewById(R.id.countdown_text);
 
             countdownText.setTag(thisOrder.getCreatedTime());
@@ -686,12 +689,8 @@ public class OrdersInProgressFragment extends Fragment {
 
             orderTitleText.setTextSize(fontSize);
             orderTitleText.setBackgroundColor(titleBgColor);
-            orderDetailText.setTextSize(fontSize);
-            orderDetailText.setBackgroundColor(bodyBgColor);
             doneButton.setBackgroundColor(titleBgColor);
             countdownText.setTextSize(fontSize);
-
-            orderDetailText.setMovementMethod(new ScrollingMovementMethod());
 
             DateTime orderCreated = new DateTime(thisOrder.getCreatedTime());
             String timeCreatedString = DateTimeFormat.forPattern("hh:mm:ss a").print(orderCreated);
@@ -707,42 +706,24 @@ public class OrdersInProgressFragment extends Fragment {
             orderTitleText.setText(timeCreatedString);
 
             List<LineItem> lineItemList = thisOrder.getLineItems();
+            List<LineItem> filteredLiList = new ArrayList<>();
 
-            String detailString = "";
 
             if(lineItemList!=null) {
-
                 for (LineItem li : lineItemList) {
-
                     if(orderMonitorData.showLineItem(li.getName())) {
-
-                        detailString = detailString + String.valueOf(Character.toChars(9654)) + li.getName() + "\r\n";
-
-                        List<Modification> modList = li.getModifications();
-                        if (modList != null) {
-
-                            Collections.sort(modList, new Comparator<Modification>() {
-                                @Override
-                                public int compare(Modification m1, Modification m2) {
-                                    return m1.getName().compareTo(m2.getName());
-                                }
-                            });
-
-                            for (Modification mo : modList) {
-                                detailString = detailString + " -" + mo.getName() + "\r\n";
-                            }
-                        }
-                        if (li.getNote() != null) {
-                            detailString = detailString + " -" + li.getNote() + "\r\n";
-                        }
-
+                        filteredLiList.add(li);
                     }
-
                 }
             }
 
+            //TODO: order by binnames
 
-            orderDetailText.setText(detailString);
+
+            LineItemListAdapter lineItemListAdapter = new LineItemListAdapter(getActivity(),filteredLiList);
+            lineItemLv.setAdapter(lineItemListAdapter);
+
+
 
             doneButton.setTag(i);
 
@@ -769,7 +750,6 @@ public class OrdersInProgressFragment extends Fragment {
                         }
                     });
 
-                    //remove the order from the list (subtract one to reference the zero-based list)
 
                     Order doneOrder = progressOrdersList.get((Integer) v.getTag() - 1);
 
