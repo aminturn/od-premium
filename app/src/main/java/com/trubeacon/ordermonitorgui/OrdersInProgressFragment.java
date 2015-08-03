@@ -1,9 +1,12 @@
 package com.trubeacon.ordermonitorgui;
 
 import android.animation.LayoutTransition;
+import android.app.AlertDialog;
+import android.app.DialogFragment;
 import android.app.Fragment;
 import android.content.BroadcastReceiver;
 import android.content.Context;
+import android.content.DialogInterface;
 import android.content.Intent;
 import android.content.SharedPreferences;
 import android.graphics.Canvas;
@@ -21,6 +24,9 @@ import android.transition.Transition;
 import android.util.DisplayMetrics;
 import android.util.Log;
 import android.view.LayoutInflater;
+import android.view.Menu;
+import android.view.MenuInflater;
+import android.view.MenuItem;
 import android.view.View;
 import android.view.ViewGroup;
 import android.widget.Button;
@@ -30,6 +36,10 @@ import android.widget.RelativeLayout;
 import android.widget.TextView;
 
 import com.tru.clover.api.client.error.*;
+import com.tru.clover.api.client.error.Error;
+import com.tru.clover.api.common.WrappedList;
+import com.tru.clover.api.inventory.Tag;
+import com.tru.clover.api.inventory.service.GetTags;
 import com.tru.clover.api.merchant.Device;
 import com.tru.clover.api.merchant.Devices;
 import com.tru.clover.api.merchant.service.GetDevices;
@@ -48,6 +58,7 @@ import java.text.SimpleDateFormat;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collections;
+import java.util.Comparator;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
@@ -62,14 +73,13 @@ public class OrdersInProgressFragment extends Fragment {
 
     private LinearLayout horizLinearLayout;
     private LayoutInflater mLayoutInflater;
-
-    private static String DISPLAY_KEY = "display preference";
-    private static String ORDER_TYPE_KEY = "order type preference";
-    private static String FONT_SIZE_KEY = "font size preference";
+    private List<Button> buttonList = new ArrayList<>();
 
     private static String actionBarTitle = "Orders In Progress";
 
     private Handler periodicUpdateHandler = new Handler();
+
+    private Handler countdownHandler = new Handler();
 
     private static int refreshRateMs = 5000;
 
@@ -77,9 +87,36 @@ public class OrdersInProgressFragment extends Fragment {
     private boolean showOrderType;
     private boolean showOrigin;
     private float fontSize;
+    private boolean showTimer;
 
     private Integer screenWidthDp;
     private OrderMonitorData orderMonitorData = OrderMonitorData.getOrderMonitorData();
+
+    private List<TextView> countdownTvList = new ArrayList<>();
+
+
+    private Runnable updateCountdown = new Runnable() {
+        @Override
+        public void run() {
+            long orderCreatedTime;
+
+            for(TextView tv:countdownTvList){
+                orderCreatedTime = (long) tv.getTag();
+                DateTime orderCreated = new DateTime(orderCreatedTime);
+                int seconds = Seconds.secondsBetween(orderCreated,DateTime.now()).getSeconds();
+                int minutes = seconds/60;
+                int sec = seconds%60;
+                String secondsString = null;
+                if(sec<10){
+                    secondsString = "0" + String.valueOf(sec);
+                }else{
+                    secondsString = String.valueOf(sec);
+                }
+                tv.setText(String.valueOf(minutes)+":"+secondsString);
+            }
+            countdownHandler.postDelayed(updateCountdown,100);
+        }
+    };
 
 
     private Runnable periodicUpdateRunnable = new Runnable() {
@@ -104,6 +141,7 @@ public class OrdersInProgressFragment extends Fragment {
     public void onResume() {
         super.onResume();
         periodicUpdateHandler.postDelayed(periodicUpdateRunnable, 0);
+        countdownHandler.postDelayed(updateCountdown, 0);
         OrderMonitorBroadcaster.registerReceiver(ordersBroadcastReceiver, OrderMonitorData.BroadcastEvent.REFRESH_ORDERS);
     }
 
@@ -111,12 +149,50 @@ public class OrdersInProgressFragment extends Fragment {
     public void onPause() {
         super.onPause();
         periodicUpdateHandler.removeCallbacks(periodicUpdateRunnable);
+        countdownHandler.removeCallbacks(updateCountdown);
         OrderMonitorBroadcaster.unregisterReceiver(ordersBroadcastReceiver);
+    }
+
+    @Override
+    public void onCreateOptionsMenu(Menu menu, MenuInflater inflater) {
+        inflater.inflate(R.menu.progress_menu,menu);
+    }
+
+    @Override
+    public boolean onOptionsItemSelected(MenuItem item) {
+        int itemId = item.getItemId();
+
+        if(itemId == R.id.clear_all){
+            AlertDialog.Builder builder = new AlertDialog.Builder(getActivity());
+            builder.setMessage(getString(R.string.clear_all_alert))
+                    .setPositiveButton("OK", new DialogInterface.OnClickListener() {
+                        @Override
+                        public void onClick(DialogInterface dialogInterface, int i) {
+                            for (Button b : buttonList) {
+                                b.setVisibility(View.INVISIBLE);
+                            }
+                            orderMonitorData.markAllOrdersDone();
+                            dialogInterface.dismiss();
+                        }
+                    })
+                    .setNegativeButton("Cancel", new DialogInterface.OnClickListener() {
+                        @Override
+                        public void onClick(DialogInterface dialogInterface, int i) {
+                            //do nothing
+                            dialogInterface.cancel();
+                        }
+                    });
+            builder.create().show();
+            return true;
+        }
+
+        return super.onOptionsItemSelected(item);
     }
 
     @Override
     public void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
+        setHasOptionsMenu(true);
     }
 
     @Nullable
@@ -126,8 +202,8 @@ public class OrdersInProgressFragment extends Fragment {
 
         SharedPreferences sharedPref = PreferenceManager.getDefaultSharedPreferences(getActivity());
 
-        String mId = sharedPref.getString(getString(R.string.merchant_id_key),"");
-        String token = sharedPref.getString(getString(R.string.saved_token_key),"");
+        String mId = sharedPref.getString(getString(R.string.merchant_id_key), "");
+        String token = sharedPref.getString(getString(R.string.saved_token_key), "");
 
         if(mId!=null&&token!=null) {
             CloverService.getService().getDevices(mId,token, new GetDevices.GetDevicesCallback(){
@@ -149,23 +225,42 @@ public class OrdersInProgressFragment extends Fragment {
 
                 }
             });
+
+            CloverService.getService().getTags(mId, token, new GetTags.GetTagsCallback() {
+                @Override
+                public void onGetTags(WrappedList<Tag> wrappedList) {
+                    orderMonitorData.setTagList(wrappedList);
+                }
+
+                @Override
+                public void onFailGetTags(Error error) {
+                    Log.v("failed to get tags",error.getMessage());
+                }
+            });
         }
 
 
-        View scrollView = inflater.inflate(R.layout.fragment_orders_in_progress, container, false);
+
+        View scrollAndClearBtnLinLay = inflater.inflate(R.layout.fragment_orders_in_progress, container, false);
+
+
+        View scrollView = scrollAndClearBtnLinLay.findViewById(R.id.scroll_view);
 
         mLayoutInflater = inflater;
 
         horizLinearLayout = (LinearLayout) scrollView.findViewById(R.id.horiz_lin_layout);
 
 
-        //find screen width to set width of relative layout
-        DisplayMetrics displayMetrics = getActivity().getResources().getDisplayMetrics();
-        screenWidthDp = (int) (displayMetrics.widthPixels / displayMetrics.density);
+
+        DisplayMetrics dm = new DisplayMetrics();
+        getActivity().getWindowManager().getDefaultDisplay().getMetrics(dm);
+
+        screenWidthDp = dm.widthPixels;
+
 
         //get display preferences
 
-        String ordersToDisplay = sharedPref.getString(DISPLAY_KEY, "5");
+        String ordersToDisplay = sharedPref.getString(getString(R.string.display_pref), "5");
 
         if (ordersToDisplay.equals(getString(R.string.five))) {
             twoRows = false;
@@ -173,22 +268,27 @@ public class OrdersInProgressFragment extends Fragment {
             twoRows = true;
         }
 
-        String fontSizeString = sharedPref.getString(FONT_SIZE_KEY, "30");
+        String fontSizeString = sharedPref.getString(getString(R.string.font_size_pref), "30");
 
         fontSize = Integer.parseInt(fontSizeString);
 
-        showOrderType = sharedPref.getBoolean(getString(R.string.display_order_type_pref),true);
+        showOrderType = sharedPref.getBoolean(getString(R.string.display_order_type_pref), true);
         showOrigin = sharedPref.getBoolean(getString(R.string.display_device_pref),true);
+        showTimer = sharedPref.getBoolean(getString(R.string.order_timer_pref),true);
 
         ActionBar actionBar = ((MainActivity) getActivity()).getSupportActionBar();
         actionBar.setTitle(actionBarTitle);
         actionBar.setDisplayHomeAsUpEnabled(false);
 
 
-        return scrollView;
+        return scrollAndClearBtnLinLay;
+
     }
 
     private void updateOrdersView() {
+
+        buttonList.clear();
+        countdownTvList.clear();
 
         if (twoRows) {
             updateTenOrdersView();
@@ -208,6 +308,7 @@ public class OrdersInProgressFragment extends Fragment {
 
         int listsize = progressOrdersList.size();
         int pages;
+
 
         if(listsize%10==0){
             pages = listsize/10;
@@ -279,29 +380,54 @@ public class OrdersInProgressFragment extends Fragment {
 
                 if(lineItemList!=null) {
                     for (LineItem li : lineItemList) {
-                        detailString = detailString + li.getName() + "\r\n";
-                        List<Modification> modList = li.getModifications();
-                        //check for modifications to line item
-                        if(modList!=null){
-                            for(Modification mo:modList){
-                                detailString = detailString + " -" + mo.getName()+"\r\n";
+
+                        if(orderMonitorData.showLineItem(li.getName())) {
+                            detailString = detailString + String.valueOf(Character.toChars(9654))+ li.getName() + "\r\n";
+                            List<Modification> modList = li.getModifications();
+
+                            //check for modifications to line item
+                            if (modList != null) {
+
+                                Collections.sort(modList, new Comparator<Modification>() {
+                                    @Override
+                                    public int compare(Modification m1, Modification m2) {
+                                        int res = m1.getName().compareTo(m2.getName());
+                                        return res;
+                                    }
+                                });
+
+                                for (Modification mo : modList) {
+                                    detailString = detailString + " -" + mo.getName() + "\r\n";
+                                }
                             }
-                        }
-                        //check for custom modification
-                        if(li.getNote()!=null) {
-                            detailString = detailString + " -" + li.getNote()+"\r\n";
+                            //check for custom modification
+                            if (li.getNote() != null) {
+                                detailString = detailString + " -" + li.getNote() + "\r\n";
+                            }
                         }
                     }
                 }
 
                 TextView orderTitleText = (TextView) relativeLayoutTop.findViewById(R.id.order_id_text);
                 TextView orderDetailText = (TextView) relativeLayoutTop.findViewById(R.id.order_detail_text);
+                TextView countdownText = (TextView) relativeLayoutTop.findViewById(R.id.countdown_text);
+                countdownText.setTag(topOrder.getCreatedTime());
+
+                if(showTimer){
+                    countdownText.setVisibility(View.VISIBLE);
+                    countdownTvList.add(countdownText);
+                }else{
+                    countdownText.setVisibility(View.GONE);
+                }
+
                 Button topDoneButton = (Button) relativeLayoutTop.findViewById(R.id.done_button);
                 orderTitleText.setTextSize(fontSize);
                 orderTitleText.setBackgroundColor(titleBgColor1);
                 orderDetailText.setTextSize(fontSize);
                 orderDetailText.setBackgroundColor(bodyBgColor1);
                 topDoneButton.setBackgroundColor(titleBgColor1);
+                countdownText.setTextSize(fontSize);
+                topDoneButton.setTextSize(fontSize);
 
                 orderDetailText.setMovementMethod(new ScrollingMovementMethod());
 
@@ -321,6 +447,8 @@ public class OrdersInProgressFragment extends Fragment {
 
                 //add a index as a tag to reference the order in the click listener
                 topDoneButton.setTag(topId);
+
+                buttonList.add(topDoneButton);
 
                 topDoneButton.setOnClickListener(new View.OnClickListener() {
                     @Override
@@ -386,13 +514,26 @@ public class OrdersInProgressFragment extends Fragment {
 
                     TextView orderTitleText2 = (TextView) relativeLayoutBottom.findViewById(R.id.order_id_text2);
                     TextView orderDetailText2 = (TextView) relativeLayoutBottom.findViewById(R.id.order_detail_text2);
+                    TextView countdownText2 = (TextView) relativeLayoutBottom.findViewById(R.id.countdown_text2);
+                    countdownText2.setTag(bottomOrder.getCreatedTime());
+
+                    if(showTimer){
+                        countdownText2.setVisibility(View.VISIBLE);
+                        countdownTvList.add(countdownText2);
+                    }else{
+                        countdownText2.setVisibility(View.GONE);
+                    }
+
+
                     Button bottomDoneButton = (Button) relativeLayoutBottom.findViewById(R.id.done_button2);
+                    bottomDoneButton.setTextSize(fontSize);
 
                     orderTitleText2.setTextSize(fontSize);
                     orderTitleText2.setBackgroundColor(titleBgColor2);
                     orderDetailText2.setTextSize(fontSize);
                     orderDetailText2.setBackgroundColor(bodyBgColor2);
                     bottomDoneButton.setBackgroundColor(titleBgColor2);
+                    countdownText2.setTextSize(fontSize);
 
                     orderDetailText2.setMovementMethod(new ScrollingMovementMethod());
 
@@ -413,14 +554,30 @@ public class OrdersInProgressFragment extends Fragment {
 
                     if(lineItemList2!=null) {
                         for (LineItem li2 : lineItemList2) {
-                            detailString2 = detailString2 + li2.getName() + "\r\n";
-                            if(li2.getModifications()!=null){
-                                for(Modification mo2:li2.getModifications()){
-                                    detailString2 = detailString2 + " -" + mo2.getName() + "\r\n";
+
+                            if(orderMonitorData.showLineItem(li2.getName())) {
+
+                                detailString2 = detailString2 + String.valueOf(Character.toChars(9654)) + li2.getName() + "\r\n";
+
+                                List<Modification> modList2 = li2.getModifications();
+
+                                if (modList2 != null) {
+
+                                    Collections.sort(modList2, new Comparator<Modification>() {
+                                        @Override
+                                        public int compare(Modification m1, Modification m2) {
+                                            int res = m1.getName().compareTo(m2.getName());
+                                            return res;
+                                        }
+                                    });
+
+                                    for (Modification mo2 : modList2) {
+                                        detailString2 = detailString2 + " -" + mo2.getName() + "\r\n";
+                                    }
                                 }
-                            }
-                            if(li2.getNote()!=null){
-                                detailString2 = detailString2 + " -" + li2.getNote() + "\r\n";
+                                if (li2.getNote() != null) {
+                                    detailString2 = detailString2 + " -" + li2.getNote() + "\r\n";
+                                }
                             }
                         }
                     }
@@ -428,6 +585,8 @@ public class OrdersInProgressFragment extends Fragment {
                     orderDetailText2.setText(detailString2);
 
                     bottomDoneButton.setTag(bottomId);
+
+                    buttonList.add(bottomDoneButton);
 
                     bottomDoneButton.setOnClickListener(new View.OnClickListener() {
                         @Override
@@ -474,6 +633,8 @@ public class OrdersInProgressFragment extends Fragment {
 
         horizLinearLayout.removeAllViews();
 
+        SharedPreferences sp = PreferenceManager.getDefaultSharedPreferences(getActivity());
+
         for(int i =1;i<=progressOrdersList.size();i++){
 
             Order thisOrder = progressOrdersList.get(i - 1);
@@ -495,8 +656,6 @@ public class OrdersInProgressFragment extends Fragment {
             horizLinearLayout.addView(relativeLayout);
             mLayoutInflater.inflate(R.layout.order_item_layout1, relativeLayout);
 
-            SharedPreferences sp = PreferenceManager.getDefaultSharedPreferences(getActivity());
-
             int titleBgColor = getResources().getColor(R.color.background);
             if(thisOrder.getOrderType()!=null) {
                 String titleColor = sp.getString(thisOrder.getOrderType().getLabel(), getString(R.string.backgroundcode));
@@ -511,13 +670,26 @@ public class OrdersInProgressFragment extends Fragment {
 
             TextView orderTitleText = (TextView) relativeLayout.findViewById(R.id.order_id_text);
             TextView orderDetailText = (TextView) relativeLayout.findViewById(R.id.order_detail_text);
+            TextView countdownText = (TextView) relativeLayout.findViewById(R.id.countdown_text);
+
+            countdownText.setTag(thisOrder.getCreatedTime());
+
+            if(showTimer){
+                countdownText.setVisibility(View.VISIBLE);
+                countdownTvList.add(countdownText);
+            }else{
+                countdownText.setVisibility(View.GONE);
+            }
+
             Button doneButton = (Button) relativeLayout.findViewById(R.id.done_button);
+            doneButton.setTextSize(fontSize);
 
             orderTitleText.setTextSize(fontSize);
             orderTitleText.setBackgroundColor(titleBgColor);
             orderDetailText.setTextSize(fontSize);
             orderDetailText.setBackgroundColor(bodyBgColor);
             doneButton.setBackgroundColor(titleBgColor);
+            countdownText.setTextSize(fontSize);
 
             orderDetailText.setMovementMethod(new ScrollingMovementMethod());
 
@@ -539,23 +711,42 @@ public class OrdersInProgressFragment extends Fragment {
             String detailString = "";
 
             if(lineItemList!=null) {
+
                 for (LineItem li : lineItemList) {
-                    detailString = detailString + li.getName() + "\r\n";
-                    List<Modification> modList = li.getModifications();
-                    if(modList!=null){
-                        for(Modification mo:modList){
-                            detailString = detailString + " -" + mo.getName()+"\r\n";
+
+                    if(orderMonitorData.showLineItem(li.getName())) {
+
+                        detailString = detailString + String.valueOf(Character.toChars(9654)) + li.getName() + "\r\n";
+
+                        List<Modification> modList = li.getModifications();
+                        if (modList != null) {
+
+                            Collections.sort(modList, new Comparator<Modification>() {
+                                @Override
+                                public int compare(Modification m1, Modification m2) {
+                                    return m1.getName().compareTo(m2.getName());
+                                }
+                            });
+
+                            for (Modification mo : modList) {
+                                detailString = detailString + " -" + mo.getName() + "\r\n";
+                            }
                         }
+                        if (li.getNote() != null) {
+                            detailString = detailString + " -" + li.getNote() + "\r\n";
+                        }
+
                     }
-                    if(li.getNote()!=null){
-                        detailString = detailString + " -" + li.getNote() + "\r\n";
-                    }
+
                 }
             }
+
 
             orderDetailText.setText(detailString);
 
             doneButton.setTag(i);
+
+            buttonList.add(doneButton);
 
             doneButton.setOnClickListener(new View.OnClickListener() {
                 @Override

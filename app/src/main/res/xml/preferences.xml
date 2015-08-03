@@ -39,10 +39,27 @@
             android:key = "@string/display_device_pref"
             android:title = "@string/display_device_pref_title"/>
 
+        <CheckBoxPreference
+            android:key = "@string/order_timer_pref"
+            android:title = "@string/order_timer_pref_title"
+            android:defaultValue="true"/>
+
+        <CheckBoxPreference
+            android:key = "@string/after_paid_pref"
+            android:title = "@string/after_paid_title"/>
+
     </PreferenceCategory>
 
     <PreferenceCategory
         android:title = "@string/order_filtering_settings">
+
+        <MultiSelectListPreference
+            android:key = "@string/item_tag_pref"
+            android:title = "@string/item_tag_title"
+            android:enabled="false"
+            android:summary = "Select which types of items to hide on this device"
+            android:defaultValue="@array/order_type_entry_vals"/>
+
 
         <MultiSelectListPreference
             android:background = "@color/background"

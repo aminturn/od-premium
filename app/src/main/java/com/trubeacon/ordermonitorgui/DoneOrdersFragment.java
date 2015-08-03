@@ -28,9 +28,12 @@ import com.tru.clover.api.order.Modification;
 import com.tru.clover.api.order.Order;
 
 import org.joda.time.DateTime;
+import org.joda.time.Seconds;
 import org.joda.time.format.DateTimeFormat;
 
 import java.util.ArrayList;
+import java.util.Collections;
+import java.util.Comparator;
 import java.util.List;
 
 
@@ -45,17 +48,82 @@ public class DoneOrdersFragment extends Fragment {
 
         private static String FONT_SIZE_KEY = "font size preference";
         private String actionBarTitle = "Completed Orders";
+        private static int refreshRateMs = 5000;
 
         private float fontSize;
         private boolean twoRows;
         private boolean showOrderType;
         private boolean showDevice;
+        private boolean showTimer;
 
         private Integer screenWidthDp;
         private OrderMonitorData orderMonitorData = OrderMonitorData.getOrderMonitorData();
 
+        private Handler doneOrdersHandler = new Handler();
+        private List<TextView> countdownTvList = new ArrayList<>();
+
+
+        private Handler countdownHandler = new Handler();
+
+
+
+        private Runnable updateCountdown = new Runnable() {
+            @Override
+            public void run() {
+                long orderCreatedTime;
+
+                for(TextView tv:countdownTvList){
+                    orderCreatedTime = (long) tv.getTag();
+                    DateTime orderCreated = new DateTime(orderCreatedTime);
+                    int seconds = Seconds.secondsBetween(orderCreated, DateTime.now()).getSeconds();
+                    int minutes = seconds/60;
+                    int sec = seconds%60;
+                    String secondsString = null;
+                    if(sec<10){
+                        secondsString = "0" + String.valueOf(sec);
+                    }else{
+                        secondsString = String.valueOf(sec);
+                    }
+                    tv.setText(String.valueOf(minutes)+":"+secondsString);
+                }
+                countdownHandler.postDelayed(updateCountdown,100);
+            }
+        };
+
+        private Runnable doneOrdersRunnable = new Runnable(){
+            @Override
+            public void run() {
+                orderMonitorData.refreshOrders();
+            }
+        };
+
+        private BroadcastReceiver ordersBroadcastReceiver = new BroadcastReceiver() {
+            @Override
+            public void onReceive(Context context, Intent intent) {
+            doneOrdersList = orderMonitorData.getDoneOrdersList();
+            updateOrdersView();
+            doneOrdersHandler.postDelayed(doneOrdersRunnable, refreshRateMs);
+            }
+        };
+
 
         @Override
+        public void onResume() {
+            super.onResume();
+            doneOrdersHandler.postDelayed(doneOrdersRunnable, 0);
+            countdownHandler.postDelayed(updateCountdown, 0);
+            OrderMonitorBroadcaster.registerReceiver(ordersBroadcastReceiver, OrderMonitorData.BroadcastEvent.REFRESH_ORDERS);
+        }
+
+        @Override
+        public void onPause() {
+            super.onPause();
+            OrderMonitorBroadcaster.unregisterReceiver(ordersBroadcastReceiver);
+            doneOrdersHandler.removeCallbacks(doneOrdersRunnable);
+            countdownHandler.removeCallbacks(updateCountdown);
+        }
+
+    @Override
         public void onCreate(Bundle savedInstanceState) {
             super.onCreate(savedInstanceState);
         }
@@ -64,15 +132,17 @@ public class DoneOrdersFragment extends Fragment {
         @Override
         public View onCreateView(LayoutInflater inflater, ViewGroup container, Bundle savedInstanceState) {
 
-            View scrollView = inflater.inflate(R.layout.fragment_orders_in_progress, container, false);
+            View scrollView = inflater.inflate(R.layout.fragment_done_orders, container, false);
 
             mLayoutInflater = inflater;
 
             horizLinearLayout = (LinearLayout) scrollView.findViewById(R.id.horiz_lin_layout);
 
             //find screen width to set width of relative layout
-            DisplayMetrics displayMetrics = getActivity().getResources().getDisplayMetrics();
-            screenWidthDp = (int) (displayMetrics.widthPixels / displayMetrics.density);
+            DisplayMetrics dm = new DisplayMetrics();
+            getActivity().getWindowManager().getDefaultDisplay().getMetrics(dm);
+
+            screenWidthDp = dm.widthPixels;
 
             //get display preferences
             SharedPreferences sharedPref = PreferenceManager.getDefaultSharedPreferences(getActivity());
@@ -90,8 +160,7 @@ public class DoneOrdersFragment extends Fragment {
 
             showOrderType = sharedPref.getBoolean(getString(R.string.display_order_type_pref),true);
             showDevice = sharedPref.getBoolean(getString(R.string.display_device_pref),true);
-
-            //dineInCarryoutBoth = sharedPref.getString(ORDER_TYPE_KEY, "");
+            showTimer = sharedPref.getBoolean(getString(R.string.order_timer_pref),true);
 
             ActionBar actionBar = ((MainActivity) getActivity()).getSupportActionBar();
             actionBar.setTitle(actionBarTitle);
@@ -106,6 +175,9 @@ public class DoneOrdersFragment extends Fragment {
 
 
         private void updateOrdersView() {
+
+            countdownTvList.clear();
+
             if (twoRows) {
                 updateTenOrdersView();
             } else {
@@ -193,16 +265,26 @@ public class DoneOrdersFragment extends Fragment {
 
                     if(lineItemList!=null) {
                         for (LineItem li : lineItemList) {
-                            detailString = detailString + li.getName() + "\r\n";
-                            List<Modification> modList = li.getModifications();
-                            if(modList!=null){
-                                Log.v("modications not null", "modifications not null");
-                                for(Modification mo:modList){
-                                    detailString = detailString + " -" + mo.getName()+"\r\n";
+                            if(orderMonitorData.showLineItem(li.getName())) {
+                                detailString = detailString + String.valueOf(Character.toChars(9654)) + li.getName() + "\r\n";
+                                List<Modification> modList = li.getModifications();
+                                if (modList != null) {
+
+                                    Collections.sort(modList, new Comparator<Modification>() {
+                                        @Override
+                                        public int compare(Modification m1, Modification m2) {
+                                            return m1.getName().compareTo(m2.getName());
+                                        }
+                                    });
+
+                                    for (Modification mo : modList) {
+                                        detailString = detailString + " -" + mo.getName() + "\r\n";
+                                    }
                                 }
-                            }
-                            if(li.getNote()!=null){
-                                detailString = detailString + " -" + li.getNote() + "\r\n";
+                                if (li.getNote() != null) {
+                                    detailString = detailString + " -" + li.getNote() + "\r\n";
+                                }
+
                             }
                         }
                     }
@@ -210,13 +292,27 @@ public class DoneOrdersFragment extends Fragment {
 
                     TextView orderTitleText = (TextView) relativeLayoutTop.findViewById(R.id.order_id_text);
                     TextView orderDetailText = (TextView) relativeLayoutTop.findViewById(R.id.order_detail_text);
+                    TextView countdownText = (TextView) relativeLayoutTop.findViewById(R.id.countdown_text);
+                    countdownText.setTag(topOrder.getCreatedTime());
+
+                    if(showTimer){
+                        countdownText.setVisibility(View.VISIBLE);
+                        countdownTvList.add(countdownText);
+                    }else{
+                        countdownText.setVisibility(View.GONE);
+                    }
+
+
+
                     Button topDoneButton = (Button) relativeLayoutTop.findViewById(R.id.done_button);
+                    topDoneButton.setTextSize(fontSize);
 
                     orderTitleText.setTextSize(fontSize);
                     orderTitleText.setBackgroundColor(titleBgColor1);
                     orderDetailText.setTextSize(fontSize);
                     orderDetailText.setBackgroundColor(bodyBgColor1);
                     topDoneButton.setBackgroundColor(titleBgColor1);
+                    countdownText.setTextSize(fontSize);
 
                     orderDetailText.setMovementMethod(new ScrollingMovementMethod());
 
@@ -256,13 +352,11 @@ public class DoneOrdersFragment extends Fragment {
 
                                 @Override
                                 public void endTransition(LayoutTransition transition, ViewGroup container, View view, int transitionType) {
-                                    updateOrdersView();
                                 }
                             });
 
                             Order doneOrder = doneOrdersList.get((Integer) v.getTag() - 1);
 
-                            doneOrdersList.remove((Integer) v.getTag() - 1);
                             orderMonitorData.markUnDone(doneOrder.getId(),doneOrder);
 
                             parentView.setLayoutTransition(lt);
@@ -304,13 +398,25 @@ public class DoneOrdersFragment extends Fragment {
 
                         TextView orderTitleText2 = (TextView) relativeLayoutBottom.findViewById(R.id.order_id_text2);
                         TextView orderDetailText2 = (TextView) relativeLayoutBottom.findViewById(R.id.order_detail_text2);
+                        TextView countdownText2 = (TextView) relativeLayoutBottom.findViewById(R.id.countdown_text2);
+                        countdownText2.setTag(bottomOrder.getCreatedTime());
+
+                        if(showTimer) {
+                            countdownTvList.add(countdownText2);
+                            countdownText2.setVisibility(View.VISIBLE);
+                        }else{
+                            countdownText2.setVisibility(View.GONE);
+                        }
+
                         Button bottomDoneButton = (Button) relativeLayoutBottom.findViewById(R.id.done_button2);
+                        bottomDoneButton.setTextSize(fontSize);
 
                         orderTitleText2.setTextSize(fontSize);
                         orderTitleText2.setBackgroundColor(titleBgColor2);
                         orderDetailText2.setTextSize(fontSize);
                         orderDetailText2.setBackgroundColor(bodyBgColor2);
                         bottomDoneButton.setBackgroundColor(titleBgColor2);
+                        countdownText2.setTextSize(fontSize);
 
                         orderDetailText2.setMovementMethod(new ScrollingMovementMethod());
 
@@ -331,14 +437,27 @@ public class DoneOrdersFragment extends Fragment {
 
                         if(lineItemList2!=null) {
                             for (LineItem li2 : lineItemList2) {
-                                detailString2 = detailString2 + li2.getName() + "\r\n";
-                                if(li2.getModifications()!=null){
-                                    for(Modification mo2:li2.getModifications()){
-                                        detailString2 = detailString2 + " -" + mo2.getName() + "\r\n";
+                                if(orderMonitorData.showLineItem(li2.getName())) {
+                                    detailString2 = detailString2 + String.valueOf(Character.toChars(9654)) + li2.getName() + "\r\n";
+
+                                    List<Modification> modList2 = li2.getModifications();
+
+                                    if (modList2 != null) {
+
+                                        Collections.sort(modList2, new Comparator<Modification>() {
+                                            @Override
+                                            public int compare(Modification m1, Modification m2) {
+                                                return m1.getName().compareTo(m2.getName());
+                                            }
+                                        });
+
+                                        for (Modification mo2 : modList2) {
+                                            detailString2 = detailString2 + " -" + mo2.getName() + "\r\n";
+                                        }
                                     }
-                                }
-                                if(li2.getNote()!=null){
-                                    detailString2 = detailString2 + " -" + li2.getNote() + "\r\n";
+                                    if (li2.getNote() != null) {
+                                        detailString2 = detailString2 + " -" + li2.getNote() + "\r\n";
+                                    }
                                 }
                             }
                         }
@@ -364,14 +483,12 @@ public class DoneOrdersFragment extends Fragment {
 
                                     @Override
                                     public void endTransition(LayoutTransition transition, ViewGroup container, View view, int transitionType) {
-                                        updateOrdersView();
                                     }
                                 });
 
                                 //remove the order from the list (subtract one to reference the zero-based list)
 
                                 Order doneOrder = doneOrdersList.get((Integer) v.getTag() - 1);
-                                doneOrdersList.remove((Integer) v.getTag() - 1);
                                 orderMonitorData.markUnDone(doneOrder.getId(), doneOrder);
                                 parentView.setLayoutTransition(lt);
                                 v.setVisibility(View.INVISIBLE);
@@ -429,13 +546,25 @@ public class DoneOrdersFragment extends Fragment {
 
                 TextView orderTitleText = (TextView) relativeLayout.findViewById(R.id.order_id_text);
                 TextView orderDetailText = (TextView) relativeLayout.findViewById(R.id.order_detail_text);
+                TextView countdownText = (TextView) relativeLayout.findViewById(R.id.countdown_text);
+                countdownText.setTag(thisOrder.getCreatedTime());
+
+                if(showTimer) {
+                    countdownTvList.add(countdownText);
+                    countdownText.setVisibility(View.VISIBLE);
+                }else{
+                    countdownText.setVisibility(View.GONE);
+                }
+
                 Button doneButton = (Button) relativeLayout.findViewById(R.id.done_button);
+                doneButton.setTextSize(fontSize);
 
                 orderTitleText.setTextSize(fontSize);
                 orderTitleText.setBackgroundColor(titleBgColor);
                 orderDetailText.setTextSize(fontSize);
                 orderDetailText.setBackgroundColor(bodyBgColor);
                 doneButton.setBackgroundColor(titleBgColor);
+                countdownText.setTextSize(fontSize);
 
                 orderDetailText.setMovementMethod(new ScrollingMovementMethod());
 
@@ -458,15 +587,25 @@ public class DoneOrdersFragment extends Fragment {
 
                 if(lineItemList!=null) {
                     for (LineItem li : lineItemList) {
-                        detailString = detailString + li.getName() + "\r\n";
-                        List<Modification> modList = li.getModifications();
-                        if(modList!=null){
-                            for(Modification mo:modList){
-                                detailString = detailString + " -" + mo.getName()+"\r\n";
+                        if(orderMonitorData.showLineItem(li.getName())) {
+                            detailString = detailString + String.valueOf(Character.toChars(9654)) + li.getName() + "\r\n";
+                            List<Modification> modList = li.getModifications();
+                            if (modList != null) {
+
+                                Collections.sort(modList, new Comparator<Modification>() {
+                                    @Override
+                                    public int compare(Modification m1, Modification m2) {
+                                        return m1.getName().compareTo(m2.getName());
+                                    }
+                                });
+
+                                for (Modification mo : modList) {
+                                    detailString = detailString + " -" + mo.getName() + "\r\n";
+                                }
                             }
-                        }
-                        if(li.getNote()!=null){
-                            detailString = detailString + " -" + li.getNote() + "\r\n";
+                            if (li.getNote() != null) {
+                                detailString = detailString + " -" + li.getNote() + "\r\n";
+                            }
                         }
                     }
                 }
@@ -492,14 +631,12 @@ public class DoneOrdersFragment extends Fragment {
 
                             @Override
                             public void endTransition(LayoutTransition transition, ViewGroup container, View view, int transitionType) {
-                                updateOrdersView();
 
                             }
                         });
 
                         //remove the order from the list (subtract one to reference the zero-based list)
                         Order doneOrder = doneOrdersList.get((Integer) v.getTag() - 1);
-                        doneOrdersList.remove((Integer) v.getTag() - 1);
                         orderMonitorData.markUnDone(doneOrder.getId(),doneOrder);
 
                         parentView.setLayoutTransition(lt);

@@ -15,11 +15,20 @@
         android:layout_weight="1">
 
         <TextView
+            android:id = "@+id/countdown_text"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:gravity="center_horizontal"
+            android:textSize="20sp"
+            android:padding = "2dp"/>
+
+        <TextView
+            android:layout_below="@id/countdown_text"
             android:id = "@+id/order_id_text"
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
             android:gravity="center_horizontal"
-            android:padding="16dp"
+            android:padding="2dp"
             android:textSize="20sp"
             android:background = "@color/dark_blue"
             android:textColor = "@color/white"
@@ -34,7 +43,7 @@
             android:layout_width="match_parent"
             android:layout_height="match_parent"
             android:textSize="20sp"
-            android:padding = "16dp"
+            android:padding = "2dp"
             android:text = "Small Coffee"/>
 
         <Button
@@ -42,10 +51,11 @@
             android:layout_alignParentBottom="true"
             android:background = "@color/dark_blue"
             android:textColor = "@color/white"
-            android:paddingTop="8dp"
-            android:layout_marginTop="8dp"
+            android:layout_marginTop="2dp"
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
+            android:minHeight="0dp"
+            android:padding="2dp"
             android:textSize="20sp"
             android:text = "UNDO"/>
 
@@ -61,11 +71,20 @@
         android:layout_weight="1">
 
         <TextView
+            android:id = "@+id/countdown_text2"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:gravity="center_horizontal"
+            android:textSize="20sp"
+            android:padding = "2dp" />
+
+        <TextView
+            android:layout_below = "@id/countdown_text2"
             android:id = "@+id/order_id_text2"
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
             android:gravity="center_horizontal"
-            android:padding="16dp"
+            android:padding="2dp"
             android:background = "@color/dark_blue"
             android:textColor = "@color/white"
             android:textSize="20sp"
@@ -76,19 +95,20 @@
             android:layout_below="@id/order_id_text2"
             android:layout_width="match_parent"
             android:layout_height="match_parent"
-            android:padding = "16dp"
+            android:padding = "2dp"
             android:textSize="20sp"
             android:text = "Small Coffee"/>
 
         <Button
             android:id = "@+id/done_button2"
             android:layout_alignParentBottom="true"
-            android:paddingTop="8dp"
-            android:layout_marginTop="8dp"
+            android:layout_marginTop="2dp"
             android:textColor = "@color/white"
             android:background="@color/dark_blue"
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
+            android:minHeight="0dp"
+            android:padding = "2dp"
             android:text = "UNDO"/>
 
     </RelativeLayout>

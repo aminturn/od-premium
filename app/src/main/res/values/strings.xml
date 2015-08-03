@@ -74,6 +74,18 @@
     <string name = "display_device_pref">display_device_pref</string>
     <string name = "display_device_pref_title">Display Order Origin Title</string>
 
+    <string name = "item_tag_pref">item tag pref</string>
+    <string name = "item_tag_title">Line Item Filtering</string>
+
+    <string name = "tag_pref_summary">Select which types of items to hide on this device</string>
+    <string name = "tag_pref_summary_disabled">Add labels to items in the Clover dashboard or Inventory app to enable</string>
+
+    <string name = "after_paid_pref">after paid pref</string>
+    <string name = "after_paid_title">Only show orders that have been paid</string>
+
+    <string name = "order_timer_pref">order_timer_pref</string>
+    <string name = "order_timer_pref_title">Display Order Timer</string>
+
     <string name = "sp10">10 sp</string>
     <string name = "sp15">15 sp</string>
     <string name = "sp20">20 sp</string>
@@ -110,6 +122,8 @@
 
     <string name = "color_cat_title">Display Colors</string>
 
+    <string name = "item_no_tag">item_no_tag</string>
+
     <string name = "bluecode">#1022E8</string>
     <string name = "greencode">#10E829</string>
     <string name = "redcode">#E81038</string>
@@ -122,6 +136,16 @@
     <string name = "white">White</string>
     <string name = "lightblue">Light Blue</string>
     <string name = "lightgreen">Light Green</string>
+
+    <string name = "locked">locked</string>
+
+    <string name = "clear_all">CLEAR ALL</string>
+
+    <string name = "clear_all_alert">Are you sure you want to mark all orders as done?</string>
+
+    <string name = "last_billing_check">last_billing_check</string>
+
+    <string name = "billing_status">billing_status</string>
 
 
 

@@ -20,6 +20,7 @@ import android.view.MenuItem;
 import android.view.View;
 import android.view.ViewGroup;
 
+import com.tru.clover.api.inventory.Tag;
 import com.tru.clover.api.merchant.Device;
 import com.tru.clover.api.merchant.Devices;
 import com.tru.clover.api.order.Order;
@@ -41,6 +42,9 @@ public class OrderMonitorPreferences extends PreferenceFragment implements Share
 
     private List<Device> deviceList;
     private List<OrderType> orderTypeList;
+    private List<Tag> tagList;
+
+    private MultiSelectListPreference tagPref;
     private MultiSelectListPreference orderTypePref;
     private MultiSelectListPreference devicePref;
     private PreferenceScreen colorPrefScreen;
@@ -58,6 +62,7 @@ public class OrderMonitorPreferences extends PreferenceFragment implements Share
         // Load the preferences from an XML resource
         addPreferencesFromResource(R.xml.preferences);
 
+        tagPref = (MultiSelectListPreference) findPreference((getString(R.string.item_tag_pref)));
         orderTypePref = (MultiSelectListPreference) findPreference(getString(R.string.order_type_pref));
         devicePref = (MultiSelectListPreference) findPreference(getString(R.string.devices_pref));
         colorPrefScreen = (PreferenceScreen) findPreference(getString(R.string.color_settings));
@@ -81,7 +86,7 @@ public class OrderMonitorPreferences extends PreferenceFragment implements Share
     @Override
     public View onCreateView(LayoutInflater inflater, ViewGroup container, Bundle savedInstanceState) {
 
-        Log.v("preference fragment","oncreateview");
+        Log.v("preference fragment", "oncreateview");
 
         //set up the actionbar with the fragment title and enable the home button
         ActionBar actionBar = ((MainActivity) getActivity()).getSupportActionBar();
@@ -163,6 +168,7 @@ public class OrderMonitorPreferences extends PreferenceFragment implements Share
             devicePref.setEnabled(false);
             devicePref.setSummary(R.string.no_devices_string);
         }
+
         if(!orderMonitorData.getOrderTypesList().isEmpty()){
             orderTypeList = orderMonitorData.getOrderTypesList();
             updateOrderTypePreferences();
@@ -173,7 +179,17 @@ public class OrderMonitorPreferences extends PreferenceFragment implements Share
             orderTypePref.setSummary(R.string.no_order_types_string);
         }
 
-        orderMonitorData.refreshDevicesAndOrderTypes();
+        if(!orderMonitorData.getTagList().isEmpty()){
+            tagList = orderMonitorData.getTagList();
+            updateTagPreferences();
+            tagPref.setEnabled(true);
+            tagPref.setSummary(getString(R.string.tag_pref_summary));
+        }else{
+            tagPref.setEnabled(false);
+            tagPref.setSummary(R.string.tag_pref_summary_disabled);
+        }
+
+        orderMonitorData.refreshDevicesOrderTypesTags();
     }
 
     @Override
@@ -201,6 +217,7 @@ public class OrderMonitorPreferences extends PreferenceFragment implements Share
             devicePref.setEnabled(false);
             devicePref.setSummary(R.string.no_devices_string);
         }
+
         if(!orderMonitorData.getOrderTypesList().isEmpty()) {
             orderTypeList = orderMonitorData.getOrderTypesList();
             updateOrderTypePreferences();
@@ -210,6 +227,34 @@ public class OrderMonitorPreferences extends PreferenceFragment implements Share
             orderTypePref.setEnabled(false);
             orderTypePref.setSummary(R.string.no_order_types_string);
         }
+
+        if(!orderMonitorData.getTagList().isEmpty()){
+            tagList = orderMonitorData.getTagList();
+            updateTagPreferences();
+            tagPref.setEnabled(true);
+            tagPref.setSummary(getString(R.string.tag_pref_summary));
+        }else{
+            tagPref.setEnabled(false);
+            tagPref.setSummary(R.string.tag_pref_summary_disabled);
+        }
+
+    }
+
+    private void updateTagPreferences(){
+        String[] entries = new String[tagList.size()];
+        String[] entryVals = new String[tagList.size()];
+
+        int i =0;
+        for(Tag t:tagList){
+            entries[i] = t.getName();
+            //maybe use ID?
+            entryVals[i] = t.getName();
+            i++;
+        }
+
+        tagPref.setEntries(entries);
+        tagPref.setEntryValues(entryVals);
+
 
     }
 
