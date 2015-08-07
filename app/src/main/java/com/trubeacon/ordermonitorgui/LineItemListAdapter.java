@@ -1,6 +1,7 @@
 package com.trubeacon.ordermonitorgui;
 
 import android.content.Context;
+import android.util.Log;
 import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
@@ -46,14 +47,16 @@ public class LineItemListAdapter extends BaseAdapter {
     }
 
     @Override
+    public boolean isEnabled(int position) {
+        if(lineItemList.get(position).getId().equals(mContext.getString(R.string.tag_line_item))){
+            return false;
+        }else{
+            return true;
+        }
+    }
+
+    @Override
     public View getView(int i, View view, ViewGroup viewGroup) {
-
-
-        //TODO: find line item view
-        //TODO: fill textview with li name and modifier names (sort these alphabetically)
-        //TODO: set background and indicator according the note on the line item (i.e. ordered, prepping, prepped, served)
-
-        //TODO: binnames for tables app?
 
         LineItem thisLineItem = lineItemList.get(i);
 
@@ -65,34 +68,58 @@ public class LineItemListAdapter extends BaseAdapter {
         TextView lineItemDetailTv = (TextView) view.findViewById(R.id.line_item_detail);
         ImageView itemDoneIv = (ImageView) view.findViewById(R.id.item_checked_image);
 
-        String lineItemDetail = thisLineItem.getName();
 
+        if(!thisLineItem.getId().equals(mContext.getString(R.string.tag_line_item))) {
 
-        List<Modification> modList = thisLineItem.getModifications();
-        if (modList != null) {
+            //line item is an actual line item, not a separator
 
-            Collections.sort(modList, new Comparator<Modification>() {
-                @Override
-                public int compare(Modification m1, Modification m2) {
-                    return m1.getName().compareTo(m2.getName());
-                }
-            });
-
-            for (Modification mo : modList) {
-                lineItemDetail = lineItemDetail + " -" + mo.getName() + "\r\n";
+            if (thisLineItem.getUserData() != null && thisLineItem.getUserData().equals(mContext.getString(R.string.checked))) {
+                itemDoneIv.setVisibility(View.VISIBLE);
+            } else {
+                itemDoneIv.setVisibility(View.INVISIBLE);
             }
+
+            String lineItemDetail = thisLineItem.getName();
+
+            List<Modification> modList = thisLineItem.getModifications();
+            if (modList != null) {
+
+                Collections.sort(modList, new Comparator<Modification>() {
+                    @Override
+                    public int compare(Modification m1, Modification m2) {
+                        return m1.getName().compareTo(m2.getName());
+                    }
+                });
+
+                for (Modification mo : modList) {
+                    lineItemDetail = lineItemDetail + "\r\n" + "  -" + mo.getName();
+                }
+            }
+
+            if (thisLineItem.getBinName() != null) {
+                Log.v("bin name", thisLineItem.getBinName());
+            } else {
+                Log.v("bin name", " is null");
+            }
+
+            thisLineItem.getUserData();
+
+            if (thisLineItem.getNote() != null) {
+                lineItemDetail = lineItemDetail + "\r\n" + "  -" + thisLineItem.getNote();
+            }
+
+            lineItemDetailTv.setText(lineItemDetail);
+
+            view.setTag(thisLineItem);
+
+        }else{
+            //line item is a separator
+            lineItemDetailTv.setText(thisLineItem.getName());
+            view.setBackgroundColor(mContext.getResources().getColor(R.color.background));
+            lineItemDetailTv.setTextColor(mContext.getResources().getColor(R.color.white));
+            itemDoneIv.setVisibility(View.INVISIBLE);
         }
 
-        //TODO: which field to use for marking the item done?, the note is used for custom modifiers..
-
-        thisLineItem.getUserData();
-
-
-        if (li.getNote() != null) {
-            detailString = detailString + " -" + li.getNote() + "\r\n";
-        }
-
-
-        return null;
+        return view;
     }
 }

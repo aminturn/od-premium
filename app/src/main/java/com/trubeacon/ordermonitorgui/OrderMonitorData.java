@@ -25,6 +25,7 @@ import com.tru.clover.api.order.Order;
 import com.tru.clover.api.order.OrderType;
 import com.tru.clover.api.order.service.GetOrders;
 import com.tru.clover.api.order.service.UpdateOrder;
+import com.tru.clover.api.order.service.UpdateOrderLineItem;
 
 import org.joda.time.DateTime;
 import org.joda.time.Seconds;
@@ -144,16 +145,15 @@ public class OrderMonitorData {
 
     private void refreshBillingInfo(){
 
-
-        CloverService.getService().getBillingInfo(mId,token,appId, new GetBillingInfo.GetBillingInfoCallback(){
+        CloverService.getService().getBillingInfo(mId, token, appId, new GetBillingInfo.GetBillingInfoCallback() {
             @Override
             public void onGetBillingInfo(AppBillingInfo appBillingInfo) {
 
                 billingStatus = appBillingInfo.getStatus();
                 SharedPreferences sp = PreferenceManager.getDefaultSharedPreferences(mContext);
-                sp.edit().putString(mContext.getString(R.string.billing_status),billingStatus.toString()).apply();
+                sp.edit().putString(mContext.getString(R.string.billing_status), billingStatus.toString()).apply();
                 Log.v("status", billingStatus.toString());
-        }
+            }
 
             @Override
             public void onFailGetBillingInfo(Error error) {
@@ -228,7 +228,8 @@ public class OrderMonitorData {
 
     public void refreshOrders(){
 
-        DateTime start = DateTime.now().minusMinutes(30);
+        //TODO:make this a user preference
+        DateTime start = DateTime.now().minusMinutes(360);
         DateTime stop = DateTime.now();
 
         if(mId.equals("")||token.equals("")){
@@ -354,6 +355,22 @@ public class OrderMonitorData {
                 Log.v("failed to update order", error.getMessage());
             }
         });
+    }
+
+    public void updateLineItem(String orderId, String lineItemId, LineItem lineItemUpdate){
+
+        CloverService.getService().updateOrderLineItem(mId,token,orderId,lineItemId,lineItemUpdate,new UpdateOrderLineItem.UpdateOrderLineItemCallback(){
+            @Override
+            public void onUpdateOrderLineItem(LineItem lineItem) {
+                Log.v("line item successfully"," updated");
+            }
+
+            @Override
+            public void onFailUpdateOrderLineItem(Error error) {
+
+            }
+        });
+
     }
 
     private void updateProgressOrdersList(List<Order> allOrders){

@@ -147,6 +147,10 @@
 
     <string name = "billing_status">billing_status</string>
 
+    <string name = "checked">checked</string>
+
+    <string name = "tag_line_item">tagged_line_item</string>
+
 
 
 

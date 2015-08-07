@@ -26,11 +26,10 @@
         android:text = "Order ID"/>
 
     <ListView
+        android:layout_below="@id/order_id_text"
         android:id = "@+id/line_item_list"
         android:layout_width="match_parent"
-        android:layout_height="wrap_content"
-        android:divider="@color/background"/>
-
+        android:layout_height="wrap_content"/>
     <Button
         android:id = "@+id/done_button"
         android:background="@color/dark_blue"
