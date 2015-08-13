@@ -24,10 +24,12 @@ public class LineItemListAdapter extends BaseAdapter {
 
     private List<LineItem> lineItemList = new ArrayList<>();
     private Context mContext;
+    private float fontSize;
 
-    public LineItemListAdapter(Context context,List<LineItem> lineItemList){
+    public LineItemListAdapter(Context context,List<LineItem> lineItemList,float fontSize){
         this.lineItemList = lineItemList;
         mContext = context;
+        this.fontSize=fontSize;
     }
 
 
@@ -68,10 +70,15 @@ public class LineItemListAdapter extends BaseAdapter {
         TextView lineItemDetailTv = (TextView) view.findViewById(R.id.line_item_detail);
         ImageView itemDoneIv = (ImageView) view.findViewById(R.id.item_checked_image);
 
+        lineItemDetailTv.setTextSize(fontSize);
+
 
         if(!thisLineItem.getId().equals(mContext.getString(R.string.tag_line_item))) {
 
             //line item is an actual line item, not a separator
+
+            view.setBackgroundColor(mContext.getResources().getColor(R.color.white));
+            lineItemDetailTv.setTextColor(mContext.getResources().getColor(R.color.black));
 
             if (thisLineItem.getUserData() != null && thisLineItem.getUserData().equals(mContext.getString(R.string.checked))) {
                 itemDoneIv.setVisibility(View.VISIBLE);
@@ -119,6 +126,15 @@ public class LineItemListAdapter extends BaseAdapter {
             lineItemDetailTv.setTextColor(mContext.getResources().getColor(R.color.white));
             itemDoneIv.setVisibility(View.INVISIBLE);
         }
+
+
+
+        int widthMeasureSpec = View.MeasureSpec.makeMeasureSpec(ViewGroup.LayoutParams.MATCH_PARENT, View.MeasureSpec.EXACTLY);
+        int heightMeasureSpec = View.MeasureSpec.makeMeasureSpec(ViewGroup.LayoutParams.WRAP_CONTENT, View.MeasureSpec.EXACTLY);
+        view.measure(widthMeasureSpec,heightMeasureSpec);
+
+        Log.v(String.valueOf(view.getMeasuredHeight()),"single view measheight");
+
 
         return view;
     }

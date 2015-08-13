@@ -14,5 +14,6 @@
 
     <color name = "light_blue">#B1F1F2</color>
     <color name = "light_green">#C3F2B1</color>
+    <color name = "black">#000000</color>
 
 </resources>

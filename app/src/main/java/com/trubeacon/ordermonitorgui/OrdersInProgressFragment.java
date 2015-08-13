@@ -29,6 +29,7 @@ import android.view.MenuInflater;
 import android.view.MenuItem;
 import android.view.View;
 import android.view.ViewGroup;
+import android.view.ViewTreeObserver;
 import android.widget.AdapterView;
 import android.widget.Button;
 import android.widget.FrameLayout;
@@ -67,6 +68,7 @@ import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
 import java.util.TreeMap;
+import java.util.concurrent.atomic.AtomicBoolean;
 
 /**
  * Created by Andrew on 4/30/2015.
@@ -297,7 +299,7 @@ public class OrdersInProgressFragment extends Fragment {
         countdownTvList.clear();
 
 
-        //TODO: always call five order view for testing, i think this should change to an arbitrary number of views...
+        //TODO: always call five order view for testing, this should change to an arbitrary number of views...
 
 //        if (twoRows) {
 //            updateTenOrdersView();
@@ -636,7 +638,7 @@ public class OrdersInProgressFragment extends Fragment {
 
     private void updateFiveOrdersView(){
 
-        RelativeLayout.LayoutParams relativeLayoutParams = new RelativeLayout.LayoutParams(
+        final RelativeLayout.LayoutParams relativeLayoutParams = new RelativeLayout.LayoutParams(
                 screenWidthDp/5,
                 ViewGroup.LayoutParams.MATCH_PARENT);
 
@@ -680,7 +682,7 @@ public class OrdersInProgressFragment extends Fragment {
             }
 
             TextView orderTitleText = (TextView) relativeLayout.findViewById(R.id.order_id_text);
-            ListView lineItemLv = (ListView) relativeLayout.findViewById(R.id.line_item_list);
+            final ListView lineItemLv = (ListView) relativeLayout.findViewById(R.id.line_item_list);
             TextView countdownText = (TextView) relativeLayout.findViewById(R.id.countdown_text);
 
             countdownText.setTag(thisOrder.getCreatedTime());
@@ -702,6 +704,8 @@ public class OrdersInProgressFragment extends Fragment {
 
             DateTime orderCreated = new DateTime(thisOrder.getCreatedTime());
             String timeCreatedString = DateTimeFormat.forPattern("hh:mm:ss a").print(orderCreated);
+            
+
 
             if(showOrderType) {
                 timeCreatedString = timeCreatedString + "\r\n" + label;
@@ -726,9 +730,49 @@ public class OrdersInProgressFragment extends Fragment {
             }
 
             //TODO: pass font size to adapter or read from shared prefs?
+            final List<LineItem> displayLiList = sortItemsIntoBins(filteredLiList);
 
-            LineItemListAdapter lineItemListAdapter = new LineItemListAdapter(getActivity(),sortItemsIntoBins(filteredLiList));
+            //TODO: don't call sortitems into bins in the constructor, make a new list
+            LineItemListAdapter lineItemListAdapter = new LineItemListAdapter(getActivity(),displayLiList,fontSize);
+
             lineItemLv.setAdapter(lineItemListAdapter);
+
+            //TODO: get last visible position and compare with length of lineitem list
+            //TODO: if everything is visible do nothing
+            //TODO: if not, add a listview to the linear layout to the right of this layout and add
+            //TODO: add an onpredrawlistener to the line item listview and check for overflow there, recursive function or a limit on the number of overflow views...
+
+
+            final ViewTreeObserver vto = lineItemLv.getViewTreeObserver();
+            vto.addOnPreDrawListener(new ViewTreeObserver.OnPreDrawListener() {
+                @Override
+                public boolean onPreDraw() {
+                    int runnableLastPos = lineItemLv.getLastVisiblePosition();
+                    Log.v("runnable last", String.valueOf(runnableLastPos));
+                    Log.v("size of displayLilist", String.valueOf(displayLiList.size()));
+
+                    if (runnableLastPos < displayLiList.size() - 1) {
+                        Log.v("a new listview", "should be added");
+                        RelativeLayout overFlowRl = new RelativeLayout(getActivity());
+                        overFlowRl.setLayoutParams(relativeLayoutParams);
+                        horizLinearLayout.addView(overFlowRl, horizLinearLayout.indexOfChild(lineItemLv)+1);
+
+                        Log.v(String.valueOf(horizLinearLayout.indexOfChild(lineItemLv)),"line item lv");
+
+
+                        mLayoutInflater.inflate(R.layout.overflow_relative_layout, overFlowRl);
+                        ListView overFlowLv = (ListView) overFlowRl.findViewById(R.id.overflow_list_view);
+                        List<LineItem> overFlowLiList = displayLiList.subList(runnableLastPos, displayLiList.size());
+                        LineItemListAdapter overFlowAdapter = new LineItemListAdapter(getActivity(), overFlowLiList, fontSize);
+                        overFlowLv.setAdapter(overFlowAdapter);
+                    }
+
+                    vto.removeOnPreDrawListener(this);
+                    return true;
+                }
+            });
+
+
             lineItemLv.setOnItemClickListener(new AdapterView.OnItemClickListener() {
 
                 @Override
@@ -737,8 +781,7 @@ public class OrdersInProgressFragment extends Fragment {
 
                     //unregister the receiver so that refreshed orders aren't shown before they can be updated
                     OrderMonitorBroadcaster.unregisterReceiver(ordersBroadcastReceiver);
-
-                    //TODO: cancel and reschedule refresh orders callback when this is clicked
+                    periodicUpdateHandler.removeCallbacks(periodicUpdateRunnable);
 
                     ImageView checkImage = (ImageView) view.findViewById(R.id.item_checked_image);
                     LineItem clickedLineItem = (LineItem) view.getTag();
@@ -752,6 +795,10 @@ public class OrdersInProgressFragment extends Fragment {
                         checkImage.setVisibility(View.VISIBLE);
                         orderMonitorData.updateLineItem(thisOrder.getId(),clickedLineItem.getId(),clickedLineItem);
                     }
+
+                    OrderMonitorBroadcaster.registerReceiver(ordersBroadcastReceiver,OrderMonitorData.BroadcastEvent.REFRESH_ORDERS);
+                    periodicUpdateHandler.post(periodicUpdateRunnable);
+
                 }
 
             });

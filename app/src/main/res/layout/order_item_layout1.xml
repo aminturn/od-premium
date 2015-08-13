@@ -25,11 +25,6 @@
         android:textColor="@color/white"
         android:text = "Order ID"/>
 
-    <ListView
-        android:layout_below="@id/order_id_text"
-        android:id = "@+id/line_item_list"
-        android:layout_width="match_parent"
-        android:layout_height="wrap_content"/>
     <Button
         android:id = "@+id/done_button"
         android:background="@color/dark_blue"
@@ -40,5 +35,12 @@
         android:minHeight="0dp"
         android:padding="2dp"
         android:text = "DONE"/>
+
+    <ListView
+        android:layout_above="@id/done_button"
+        android:layout_below = "@+id/order_id_text"
+        android:id = "@+id/line_item_list"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"/>
 
     </RelativeLayout>

@@ -287,12 +287,10 @@ public class OrderMonitorData {
 
 
     public void markAllOrdersDone(){
-
         for(Order o:progressOrdersList){
             o.setNote(ORDER_DONE_KEY);
             markDone(o.getId(),o);
         }
-
     }
 
 
