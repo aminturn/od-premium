@@ -297,7 +297,6 @@ public class OrderMonitorPreferences extends PreferenceFragment implements Share
             sp.edit().putBoolean(ORDER_TYPE_FIRST_TIME,false).apply();
         }
 
-
     }
 
     private void updateDevicePreferences(){

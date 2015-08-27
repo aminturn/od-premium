@@ -1,6 +1,15 @@
 <?xml version="1.0" encoding="utf-8"?>
+
+<LinearLayout
+    xmlns:android = "http://schemas.android.com/apk/res/android"
+    android:id = "@+id/overflow_linear_layout"
+    android:orientation="horizontal"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent">
+
     <RelativeLayout
-        xmlns:android = "http://schemas.android.com/apk/res/android"
+
+        android:id = "@+id/order_relative_layout"
         android:layout_margin="2dp"
         android:layout_width="match_parent"
         android:background="@color/white"
@@ -41,6 +50,9 @@
         android:layout_below = "@+id/order_id_text"
         android:id = "@+id/line_item_list"
         android:layout_width="match_parent"
-        android:layout_height="wrap_content"/>
+        android:layout_height="wrap_content"
+        android:dividerHeight="0dp"/>
 
     </RelativeLayout>
+
+</LinearLayout>

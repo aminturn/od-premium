@@ -5,8 +5,11 @@ import android.util.Log;
 import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
+import android.widget.AbsListView;
 import android.widget.BaseAdapter;
 import android.widget.ImageView;
+import android.widget.LinearLayout;
+import android.widget.ListView;
 import android.widget.TextView;
 
 import com.tru.clover.api.order.LineItem;
@@ -50,11 +53,13 @@ public class LineItemListAdapter extends BaseAdapter {
 
     @Override
     public boolean isEnabled(int position) {
-        if(lineItemList.get(position).getId().equals(mContext.getString(R.string.tag_line_item))){
+        if(lineItemList.get(position).getId().equals(mContext.getString(R.string.tag_line_item))||lineItemList.get(position).getId().equals(mContext.getString(R.string.modifier))){
             return false;
         }else{
             return true;
         }
+
+        //TODO: associate modifications with line item, so that they can be cleared when the item is cleared
     }
 
     @Override
@@ -72,6 +77,24 @@ public class LineItemListAdapter extends BaseAdapter {
 
         lineItemDetailTv.setTextSize(fontSize);
 
+        View marginView = view.findViewById(R.id.margin_view);
+
+
+        if(thisLineItem.getId().equals(mContext.getString(R.string.tag_line_item))||thisLineItem.getId().equals(mContext.getString(R.string.modifier))){
+            //no margins on modifiers and tables separators
+            marginView.setVisibility(View.GONE);
+        }else{
+            //top margins on line items except for first in list or if they come after a tables seperator
+            if(i==0){
+                marginView.setVisibility(View.GONE);
+            }else if(lineItemList.get(i-1).getId().equals(mContext.getString(R.string.tag_line_item))){
+                marginView.setVisibility(View.GONE);
+            }else{
+                marginView.setVisibility(View.VISIBLE);
+            }
+        }
+
+
 
         if(!thisLineItem.getId().equals(mContext.getString(R.string.tag_line_item))) {
 
@@ -88,28 +111,27 @@ public class LineItemListAdapter extends BaseAdapter {
 
             String lineItemDetail = thisLineItem.getName();
 
-            List<Modification> modList = thisLineItem.getModifications();
-            if (modList != null) {
-
-                Collections.sort(modList, new Comparator<Modification>() {
-                    @Override
-                    public int compare(Modification m1, Modification m2) {
-                        return m1.getName().compareTo(m2.getName());
-                    }
-                });
-
-                for (Modification mo : modList) {
-                    lineItemDetail = lineItemDetail + "\r\n" + "  -" + mo.getName();
-                }
-            }
+            //TODO: move this into ordersinprogressfragment
+//            List<Modification> modList = thisLineItem.getModifications();
+//            if (modList != null) {
+//
+//                Collections.sort(modList, new Comparator<Modification>() {
+//                    @Override
+//                    public int compare(Modification m1, Modification m2) {
+//                        return m1.getName().compareTo(m2.getName());
+//                    }
+//                });
+//
+//                for (Modification mo : modList) {
+//                    lineItemDetail = lineItemDetail + "\r\n" + "  -" + mo.getName();
+//                }
+//            }
 
             if (thisLineItem.getBinName() != null) {
                 Log.v("bin name", thisLineItem.getBinName());
             } else {
                 Log.v("bin name", " is null");
             }
-
-            thisLineItem.getUserData();
 
             if (thisLineItem.getNote() != null) {
                 lineItemDetail = lineItemDetail + "\r\n" + "  -" + thisLineItem.getNote();
@@ -121,6 +143,7 @@ public class LineItemListAdapter extends BaseAdapter {
 
         }else{
             //line item is a separator
+
             lineItemDetailTv.setText(thisLineItem.getName());
             view.setBackgroundColor(mContext.getResources().getColor(R.color.background));
             lineItemDetailTv.setTextColor(mContext.getResources().getColor(R.color.white));

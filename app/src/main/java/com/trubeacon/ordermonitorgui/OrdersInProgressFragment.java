@@ -29,19 +29,23 @@ import android.view.MenuInflater;
 import android.view.MenuItem;
 import android.view.View;
 import android.view.ViewGroup;
+import android.view.ViewParent;
 import android.view.ViewTreeObserver;
 import android.widget.AdapterView;
 import android.widget.Button;
 import android.widget.FrameLayout;
+import android.widget.HorizontalScrollView;
 import android.widget.ImageView;
 import android.widget.LinearLayout;
 import android.widget.ListView;
 import android.widget.RelativeLayout;
+import android.widget.ScrollView;
 import android.widget.TextView;
 
 import com.tru.clover.api.client.error.*;
 import com.tru.clover.api.client.error.Error;
 import com.tru.clover.api.common.WrappedList;
+import com.tru.clover.api.inventory.Modifier;
 import com.tru.clover.api.inventory.Tag;
 import com.tru.clover.api.inventory.service.GetTags;
 import com.tru.clover.api.merchant.Device;
@@ -51,6 +55,7 @@ import com.tru.clover.api.order.LineItem;
 import com.tru.clover.api.order.Modification;
 import com.tru.clover.api.order.Order;
 
+import org.apache.commons.lang3.builder.HashCodeBuilder;
 import org.joda.time.DateTime;
 import org.joda.time.Seconds;
 import org.joda.time.format.DateTimeFormat;
@@ -66,9 +71,11 @@ import java.util.Comparator;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
+import java.util.Objects;
 import java.util.Set;
 import java.util.TreeMap;
 import java.util.concurrent.atomic.AtomicBoolean;
+
 
 /**
  * Created by Andrew on 4/30/2015.
@@ -77,8 +84,10 @@ import java.util.concurrent.atomic.AtomicBoolean;
 public class OrdersInProgressFragment extends Fragment {
 
     private List<Order> progressOrdersList = new ArrayList<>();
+    private HashMap<String,Order> currentOrderHashMap = new HashMap<String,Order>();
 
     private LinearLayout horizLinearLayout;
+    private HorizontalScrollView scrollView;
     private LayoutInflater mLayoutInflater;
     private List<Button> buttonList = new ArrayList<>();
 
@@ -96,6 +105,9 @@ public class OrdersInProgressFragment extends Fragment {
     private float fontSize;
     private boolean showTimer;
     private TreeMap<String,List<LineItem>> binTreeMap = new TreeMap<String,List<LineItem>>();
+
+    private DateTime startPoll = new DateTime();
+    private DateTime lastpolled = DateTime.now().minusMinutes(360);
 
     private Integer screenWidthDp;
     private OrderMonitorData orderMonitorData = OrderMonitorData.getOrderMonitorData();
@@ -131,6 +143,8 @@ public class OrdersInProgressFragment extends Fragment {
 
         @Override
         public void run() {
+            startPoll = DateTime.now();
+            Log.v("now", String.valueOf(startPoll.getMillis()));
             orderMonitorData.refreshOrders();
         }
     };
@@ -179,6 +193,8 @@ public class OrdersInProgressFragment extends Fragment {
                             for (Button b : buttonList) {
                                 b.setVisibility(View.INVISIBLE);
                             }
+                            currentOrderHashMap.clear();
+                            horizLinearLayout.removeAllViews();
                             orderMonitorData.markAllOrdersDone();
                             dialogInterface.dismiss();
                         }
@@ -207,6 +223,9 @@ public class OrdersInProgressFragment extends Fragment {
     @Override
     public View onCreateView(LayoutInflater inflater, ViewGroup container, Bundle savedInstanceState) {
 
+        lastpolled = DateTime.now().minusMinutes(360);
+
+        currentOrderHashMap.clear();
 
         SharedPreferences sharedPref = PreferenceManager.getDefaultSharedPreferences(getActivity());
 
@@ -247,24 +266,18 @@ public class OrdersInProgressFragment extends Fragment {
             });
         }
 
-
-
         View scrollAndClearBtnLinLay = inflater.inflate(R.layout.fragment_orders_in_progress, container, false);
 
-
-        View scrollView = scrollAndClearBtnLinLay.findViewById(R.id.scroll_view);
+        scrollView = (HorizontalScrollView) scrollAndClearBtnLinLay.findViewById(R.id.scroll_view);
 
         mLayoutInflater = inflater;
 
         horizLinearLayout = (LinearLayout) scrollView.findViewById(R.id.horiz_lin_layout);
 
-
-
         DisplayMetrics dm = new DisplayMetrics();
         getActivity().getWindowManager().getDefaultDisplay().getMetrics(dm);
 
         screenWidthDp = dm.widthPixels;
-
 
         //get display preferences
 
@@ -288,497 +301,317 @@ public class OrdersInProgressFragment extends Fragment {
         actionBar.setTitle(actionBarTitle);
         actionBar.setDisplayHomeAsUpEnabled(false);
 
-
         return scrollAndClearBtnLinLay;
-
-    }
-
-    private void updateOrdersView() {
-
-        buttonList.clear();
-        countdownTvList.clear();
-
-
-        //TODO: always call five order view for testing, this should change to an arbitrary number of views...
-
-//        if (twoRows) {
-//            updateTenOrdersView();
-//        } else {
-            updateFiveOrdersView();
-//        }
     }
 
 
-    private void updateTenOrdersView(){
+    private void addViewToHorizLinearLayout(int i,String orderId){
 
-//        LinearLayout.LayoutParams linearLayoutParams = new LinearLayout.LayoutParams(
-//                screenWidthDp/5,
-//                ViewGroup.LayoutParams.MATCH_PARENT);
-//
-//        horizLinearLayout.removeAllViews();
-//
-//        int listsize = progressOrdersList.size();
-//        int pages;
-//
-//
-//        if(listsize%10==0){
-//            pages = listsize/10;
-//        }
-//        else{
-//            pages = listsize/10+1;
-//        }
-//
-//
-//        int frames = pages*5;
-//        int pagenumber =0;
-//
-//        for(int f = 1;f<=frames;f++) {
-//
-//            LinearLayout linearLayout = new LinearLayout(getActivity());
-//            linearLayout.setLayoutParams(linearLayoutParams);
-//
-//            horizLinearLayout.addView(linearLayout);
-//            mLayoutInflater.inflate(R.layout.order_item_layout2, linearLayout);
-//
-//            RelativeLayout relativeLayoutTop = (RelativeLayout) linearLayout.findViewById(R.id.order_item_top);
-//            RelativeLayout relativeLayoutBottom = (RelativeLayout) linearLayout.findViewById(R.id.order_item_bottom);
-//
-//            int topId;
-//            if(f%5==0){
-//                topId = pagenumber*10+5;
-//            }else {
-//                topId = pagenumber * 10 + f % 5;
-//            }
-//
-//            int bottomId = topId+5;
-//
-//            if(topId<=listsize) {
-//
-//                relativeLayoutTop.setVisibility(View.VISIBLE);
-//
-//                Order topOrder = progressOrdersList.get(topId - 1);
-//
-//
-//                String label = "";
-//
-//                if(topOrder.getOrderType()!=null&&showOrderType) {
-//                    label = topOrder.getOrderType().getLabel();
-//                }
-//
-//                String origin = "";
-//
-//                if(topOrder.getDevice().getId()!=null&&showOrigin){
-//                    origin = orderMonitorData.getDeviceNamefromId(topOrder.getDevice().getId());
-//                }
-//
-//                SharedPreferences sp = PreferenceManager.getDefaultSharedPreferences(getActivity());
-//
-//                int titleBgColor1 = getResources().getColor(R.color.background);
-//                if(topOrder.getOrderType()!=null) {
-//                    String titleColor1 = sp.getString(topOrder.getOrderType().getLabel(), getString(R.string.backgroundcode));
-//                    titleBgColor1 = Color.parseColor(titleColor1);
-//                }
-//
-//                int bodyBgColor1 = getResources().getColor(R.color.white);
-//                if(topOrder.getDevice()!=null){
-//                    String bodyColor1 = sp.getString(topOrder.getDevice().getId(),getString(R.string.white));
-//                    bodyBgColor1 = Color.parseColor(bodyColor1);
-//                }
-//
-//                String detailString = "";
-//
-//                List<LineItem> lineItemList= topOrder.getLineItems();
-//
-//                if(lineItemList!=null) {
-//                    for (LineItem li : lineItemList) {
-//
-//                        if(orderMonitorData.showLineItem(li.getName())) {
-//                            detailString = detailString + String.valueOf(Character.toChars(9654))+ li.getName() + "\r\n";
-//                            List<Modification> modList = li.getModifications();
-//
-//                            //check for modifications to line item
-//                            if (modList != null) {
-//
-//                                Collections.sort(modList, new Comparator<Modification>() {
-//                                    @Override
-//                                    public int compare(Modification m1, Modification m2) {
-//                                        int res = m1.getName().compareTo(m2.getName());
-//                                        return res;
-//                                    }
-//                                });
-//
-//                                for (Modification mo : modList) {
-//                                    detailString = detailString + " -" + mo.getName() + "\r\n";
-//                                }
-//                            }
-//                            //check for custom modification
-//                            if (li.getNote() != null) {
-//                                detailString = detailString + " -" + li.getNote() + "\r\n";
-//                            }
-//                        }
-//                    }
-//                }
-//
-//                TextView orderTitleText = (TextView) relativeLayoutTop.findViewById(R.id.order_id_text);
-//                TextView orderDetailText = (TextView) relativeLayoutTop.findViewById(R.id.order_detail_text);
-//                TextView countdownText = (TextView) relativeLayoutTop.findViewById(R.id.countdown_text);
-//                countdownText.setTag(topOrder.getCreatedTime());
-//
-//                if(showTimer){
-//                    countdownText.setVisibility(View.VISIBLE);
-//                    countdownTvList.add(countdownText);
-//                }else{
-//                    countdownText.setVisibility(View.GONE);
-//                }
-//
-//                Button topDoneButton = (Button) relativeLayoutTop.findViewById(R.id.done_button);
-//                orderTitleText.setTextSize(fontSize);
-//                orderTitleText.setBackgroundColor(titleBgColor1);
-//                orderDetailText.setTextSize(fontSize);
-//                orderDetailText.setBackgroundColor(bodyBgColor1);
-//                topDoneButton.setBackgroundColor(titleBgColor1);
-//                countdownText.setTextSize(fontSize);
-//                topDoneButton.setTextSize(fontSize);
-//
-//                orderDetailText.setMovementMethod(new ScrollingMovementMethod());
-//
-//                DateTime orderCreated = new DateTime(topOrder.getCreatedTime());
-//                String timeCreatedString = DateTimeFormat.forPattern("hh:mm:ss a").print(orderCreated);
-//
-//                if(showOrderType) {
-//                    timeCreatedString = timeCreatedString + "\r\n" + label;
-//                }
-//
-//                if(showOrigin){
-//                    timeCreatedString = timeCreatedString + "\r\n" + origin;
-//                }
-//
-//                orderTitleText.setText(timeCreatedString);
-//                orderDetailText.setText(detailString);
-//
-//                //add a index as a tag to reference the order in the click listener
-//                topDoneButton.setTag(topId);
-//
-//                buttonList.add(topDoneButton);
-//
-//                topDoneButton.setOnClickListener(new View.OnClickListener() {
-//                    @Override
-//                    public void onClick(View v) {
-//
-//                        RelativeLayout parentView = (RelativeLayout) v.getParent();
-//
-//                        LayoutTransition lt = new LayoutTransition();
-//                        lt.enableTransitionType(LayoutTransition.CHANGING);
-//                        lt.addTransitionListener(new LayoutTransition.TransitionListener() {
-//
-//                            @Override
-//                            public void startTransition(LayoutTransition transition, ViewGroup container, View view, int transitionType) {
-//
-//                            }
-//
-//                            @Override
-//                            public void endTransition(LayoutTransition transition, ViewGroup container, View view, int transitionType) {
-//
-//                            }
-//                        });
-//
-//                        Order doneOrder = progressOrdersList.get((Integer) v.getTag() - 1);
-//
-//                        //progressOrdersList.remove((Integer) v.getTag() - 1);
-//
-//                        orderMonitorData.markDone(doneOrder.getId(),doneOrder);
-//                        parentView.setLayoutTransition(lt);
-//                        v.setVisibility(View.INVISIBLE);
-//
-//                    }
-//                });
-//
-//                if (bottomId <=listsize) {
-//                    relativeLayoutBottom.setVisibility(View.VISIBLE);
-//                    //minus one index for zero-based list
-//                    Order bottomOrder = progressOrdersList.get(bottomId-1);
-//                    String detailString2 = "";
-//
-//                    String label2 = "";
-//
-//                    if(bottomOrder.getOrderType()!=null&&showOrderType) {
-//                        label2 = bottomOrder.getOrderType().getLabel();
-//                    }
-//
-//                    String origin2 = "";
-//
-//                    if(bottomOrder.getDevice().getId()!=null&&showOrigin){
-//                        origin2 = orderMonitorData.getDeviceNamefromId(bottomOrder.getDevice().getId());
-//                    }
-//
-//                    int titleBgColor2 = getResources().getColor(R.color.background);
-//                    if(bottomOrder.getOrderType()!=null) {
-//                        String titleColor2 = sp.getString(bottomOrder.getOrderType().getLabel(), getString(R.string.backgroundcode));
-//                        titleBgColor2 = Color.parseColor(titleColor2);
-//                    }
-//
-//                    int bodyBgColor2 = getResources().getColor(R.color.white);
-//                    if(bottomOrder.getDevice()!=null){
-//                        String bodyColor2 = sp.getString(bottomOrder.getDevice().getId(),getString(R.string.white));
-//                        bodyBgColor2 = Color.parseColor(bodyColor2);
-//                    }
-//
-//                    TextView orderTitleText2 = (TextView) relativeLayoutBottom.findViewById(R.id.order_id_text2);
-//                    TextView orderDetailText2 = (TextView) relativeLayoutBottom.findViewById(R.id.order_detail_text2);
-//                    TextView countdownText2 = (TextView) relativeLayoutBottom.findViewById(R.id.countdown_text2);
-//                    countdownText2.setTag(bottomOrder.getCreatedTime());
-//
-//                    if(showTimer){
-//                        countdownText2.setVisibility(View.VISIBLE);
-//                        countdownTvList.add(countdownText2);
-//                    }else{
-//                        countdownText2.setVisibility(View.GONE);
-//                    }
-//
-//
-//                    Button bottomDoneButton = (Button) relativeLayoutBottom.findViewById(R.id.done_button2);
-//                    bottomDoneButton.setTextSize(fontSize);
-//
-//                    orderTitleText2.setTextSize(fontSize);
-//                    orderTitleText2.setBackgroundColor(titleBgColor2);
-//                    orderDetailText2.setTextSize(fontSize);
-//                    orderDetailText2.setBackgroundColor(bodyBgColor2);
-//                    bottomDoneButton.setBackgroundColor(titleBgColor2);
-//                    countdownText2.setTextSize(fontSize);
-//
-//                    orderDetailText2.setMovementMethod(new ScrollingMovementMethod());
-//
-//                    DateTime orderCreated2 = new DateTime(bottomOrder.getCreatedTime());
-//                    String timeCreatedString2 = DateTimeFormat.forPattern("hh:mm:ss a").print(orderCreated2);
-//
-//                    if(showOrderType) {
-//                        timeCreatedString2 = timeCreatedString2 + "\r\n" + label2;
-//                    }
-//
-//                    if(showOrigin){
-//                        timeCreatedString2 = timeCreatedString2 + "\r\n" + origin2;
-//                    }
-//
-//                    orderTitleText2.setText(timeCreatedString2);
-//
-//                    List<LineItem> lineItemList2 = bottomOrder.getLineItems();
-//
-//                    if(lineItemList2!=null) {
-//                        for (LineItem li2 : lineItemList2) {
-//
-//                            if(orderMonitorData.showLineItem(li2.getName())) {
-//
-//                                detailString2 = detailString2 + String.valueOf(Character.toChars(9654)) + li2.getName() + "\r\n";
-//
-//                                List<Modification> modList2 = li2.getModifications();
-//
-//                                if (modList2 != null) {
-//
-//                                    Collections.sort(modList2, new Comparator<Modification>() {
-//                                        @Override
-//                                        public int compare(Modification m1, Modification m2) {
-//                                            int res = m1.getName().compareTo(m2.getName());
-//                                            return res;
-//                                        }
-//                                    });
-//
-//                                    for (Modification mo2 : modList2) {
-//                                        detailString2 = detailString2 + " -" + mo2.getName() + "\r\n";
-//                                    }
-//                                }
-//                                if (li2.getNote() != null) {
-//                                    detailString2 = detailString2 + " -" + li2.getNote() + "\r\n";
-//                                }
-//                            }
-//                        }
-//                    }
-//
-//                    orderDetailText2.setText(detailString2);
-//
-//                    bottomDoneButton.setTag(bottomId);
-//
-//                    buttonList.add(bottomDoneButton);
-//
-//                    bottomDoneButton.setOnClickListener(new View.OnClickListener() {
-//                        @Override
-//                        public void onClick(View v) {
-//
-//                            RelativeLayout parentView = (RelativeLayout) v.getParent();
-//
-//                            LayoutTransition lt = new LayoutTransition();
-//                            lt.enableTransitionType(LayoutTransition.CHANGE_DISAPPEARING);
-//                            lt.addTransitionListener(new LayoutTransition.TransitionListener() {
-//
-//                                @Override
-//                                public void startTransition(LayoutTransition transition, ViewGroup container, View view, int transitionType) {
-//
-//                                }
-//
-//                                @Override
-//                                public void endTransition(LayoutTransition transition, ViewGroup container, View view, int transitionType) {
-//
-//                                }
-//                            });
-//
-//                            //remove the order from the list (subtract one to reference the zero-based list)
-//
-//                            Order doneOrder = progressOrdersList.get((Integer) v.getTag() - 1);
-//
-//                            orderMonitorData.markDone(doneOrder.getId(),doneOrder);
-//                            parentView.setLayoutTransition(lt);
-//                            v.setVisibility(View.INVISIBLE);
-//                        }
-//                    });
-//                }
-//            }
-//
-//            if(f%5==0){pagenumber++;}
-//        }
-    }
-
-    private void updateFiveOrdersView(){
-
-        final RelativeLayout.LayoutParams relativeLayoutParams = new RelativeLayout.LayoutParams(
+        //set the order tag to the id
+        final LinearLayout.LayoutParams linearLayoutParams = new LinearLayout.LayoutParams(
                 screenWidthDp/5,
                 ViewGroup.LayoutParams.MATCH_PARENT);
 
-        horizLinearLayout.removeAllViews();
-
         SharedPreferences sp = PreferenceManager.getDefaultSharedPreferences(getActivity());
 
-        for(int i =1;i<=progressOrdersList.size();i++){
 
-            final Order thisOrder = progressOrdersList.get(i - 1);
+        final Order thisOrder = currentOrderHashMap.get(orderId);
 
-            String label = "";
+        String label = "";
 
-            if(thisOrder.getOrderType()!=null&&showOrderType) {
-                label = thisOrder.getOrderType().getLabel();
-            }
+        if(thisOrder.getOrderType()!=null&&showOrderType) {
+            label = thisOrder.getOrderType().getLabel();
+        }
 
-            String origin = "";
+        String origin = "";
 
-            if(thisOrder.getDevice().getId()!=null&&showOrigin){
-                origin = orderMonitorData.getDeviceNamefromId(thisOrder.getDevice().getId());
-            }
+        if(thisOrder.getDevice().getId()!=null&&showOrigin){
+            origin = orderMonitorData.getDeviceNamefromId(thisOrder.getDevice().getId());
+        }
 
-            RelativeLayout relativeLayout= new RelativeLayout(getActivity());
-            relativeLayout.setLayoutParams(relativeLayoutParams);
-            horizLinearLayout.addView(relativeLayout);
-            mLayoutInflater.inflate(R.layout.order_item_layout1, relativeLayout);
+        final LinearLayout overFlowLinearLayout= new LinearLayout(getActivity());
+        overFlowLinearLayout.setLayoutParams(linearLayoutParams);
 
-            int titleBgColor = getResources().getColor(R.color.background);
-            if(thisOrder.getOrderType()!=null) {
-                String titleColor = sp.getString(thisOrder.getOrderType().getLabel(), getString(R.string.backgroundcode));
-                titleBgColor = Color.parseColor(titleColor);
-            }
+        //add at position in progress orders list
+        horizLinearLayout.addView(overFlowLinearLayout, i);
 
+        mLayoutInflater.inflate(R.layout.order_item_layout1, overFlowLinearLayout,true);
+        overFlowLinearLayout.setTag(thisOrder.getId());
 
-            //TODO: apply this to the listview?
-            int bodyBgColor = getResources().getColor(R.color.white);
-            if(thisOrder.getDevice()!=null){
-                String bodyColor = sp.getString(thisOrder.getDevice().getId(),getString(R.string.white));
-                bodyBgColor = Color.parseColor(bodyColor);
-            }
+        final RelativeLayout relativeLayout = (RelativeLayout) overFlowLinearLayout.findViewById(R.id.order_relative_layout);
 
-            TextView orderTitleText = (TextView) relativeLayout.findViewById(R.id.order_id_text);
-            final ListView lineItemLv = (ListView) relativeLayout.findViewById(R.id.line_item_list);
-            TextView countdownText = (TextView) relativeLayout.findViewById(R.id.countdown_text);
+        int titleBgColor = getResources().getColor(R.color.background);
+        if(thisOrder.getOrderType()!=null) {
+            String titleColor = sp.getString(thisOrder.getOrderType().getLabel(), getString(R.string.backgroundcode));
+            titleBgColor = Color.parseColor(titleColor);
+        }
 
-            countdownText.setTag(thisOrder.getCreatedTime());
+        //TODO: apply this to the listview?
+        int bodyBgColor = getResources().getColor(R.color.white);
+        if(thisOrder.getDevice()!=null){
+            String bodyColor = sp.getString(thisOrder.getDevice().getId(),getString(R.string.white));
+            bodyBgColor = Color.parseColor(bodyColor);
+        }
 
-            if(showTimer){
-                countdownText.setVisibility(View.VISIBLE);
-                countdownTvList.add(countdownText);
-            }else{
-                countdownText.setVisibility(View.GONE);
-            }
+        TextView orderTitleText = (TextView) relativeLayout.findViewById(R.id.order_id_text);
+        final ListView lineItemLv = (ListView) relativeLayout.findViewById(R.id.line_item_list);
+        final TextView countdownText = (TextView) relativeLayout.findViewById(R.id.countdown_text);
 
-            Button doneButton = (Button) relativeLayout.findViewById(R.id.done_button);
-            doneButton.setTextSize(fontSize);
+        countdownText.setTag(thisOrder.getCreatedTime());
 
-            orderTitleText.setTextSize(fontSize);
-            orderTitleText.setBackgroundColor(titleBgColor);
-            doneButton.setBackgroundColor(titleBgColor);
-            countdownText.setTextSize(fontSize);
+        if(showTimer){
+            countdownText.setVisibility(View.VISIBLE);
+            countdownTvList.add(countdownText);
+        }else{
+            countdownText.setVisibility(View.GONE);
+        }
 
-            DateTime orderCreated = new DateTime(thisOrder.getCreatedTime());
-            String timeCreatedString = DateTimeFormat.forPattern("hh:mm:ss a").print(orderCreated);
-            
+        final Button doneButton = (Button) relativeLayout.findViewById(R.id.done_button);
+        doneButton.setTextSize(fontSize);
 
+        orderTitleText.setTextSize(fontSize);
+        orderTitleText.setBackgroundColor(titleBgColor);
+        doneButton.setBackgroundColor(titleBgColor);
+        countdownText.setTextSize(fontSize);
 
-            if(showOrderType) {
-                timeCreatedString = timeCreatedString + "\r\n" + label;
-            }
-
-            if(showOrigin){
-                timeCreatedString = timeCreatedString + "\r\n" + origin;
-            }
-
-            orderTitleText.setText(timeCreatedString);
-
-            List<LineItem> lineItemList = thisOrder.getLineItems();
-            List<LineItem> filteredLiList = new ArrayList<>();
+        DateTime orderCreated = new DateTime(thisOrder.getCreatedTime());
+        String timeCreatedString = DateTimeFormat.forPattern("hh:mm:ss a").print(orderCreated);
 
 
-            if(lineItemList!=null) {
-                for (LineItem li : lineItemList) {
-                    if(orderMonitorData.showLineItem(li.getName())) {
-                        filteredLiList.add(li);
-                    }
+        if(showOrderType) {
+            timeCreatedString = timeCreatedString + "\r\n" + label;
+        }
+
+        if(showOrigin){
+            timeCreatedString = timeCreatedString + "\r\n" + origin;
+        }
+
+        orderTitleText.setText(timeCreatedString);
+
+        List<LineItem> lineItemList = thisOrder.getLineItems();
+        List<LineItem> filteredLiList = new ArrayList<>();
+
+
+        if(lineItemList!=null) {
+            for (LineItem li : lineItemList) {
+                if(orderMonitorData.showLineItem(li.getName())) {
+                    filteredLiList.add(li);
                 }
             }
+        }
 
-            //TODO: pass font size to adapter or read from shared prefs?
-            final List<LineItem> displayLiList = sortItemsIntoBins(filteredLiList);
+        final List<LineItem> displayLiList = sortItemsIntoBins(filteredLiList,thisOrder);
 
-            //TODO: don't call sortitems into bins in the constructor, make a new list
-            LineItemListAdapter lineItemListAdapter = new LineItemListAdapter(getActivity(),displayLiList,fontSize);
+        LineItemListAdapter lineItemListAdapter = new LineItemListAdapter(getActivity(),displayLiList,fontSize);
 
-            lineItemLv.setAdapter(lineItemListAdapter);
+        lineItemLv.setAdapter(lineItemListAdapter);
 
-            //TODO: get last visible position and compare with length of lineitem list
-            //TODO: if everything is visible do nothing
-            //TODO: if not, add a listview to the linear layout to the right of this layout and add
-            //TODO: add an onpredrawlistener to the line item listview and check for overflow there, recursive function or a limit on the number of overflow views...
+        final ViewTreeObserver vto = lineItemLv.getViewTreeObserver();
+        vto.addOnGlobalLayoutListener(new ViewTreeObserver.OnGlobalLayoutListener() {
+            @Override
+            public void onGlobalLayout() {
+                int runnableLastPos = lineItemLv.getLastVisiblePosition();
+                View lastLv = lineItemLv.getChildAt(runnableLastPos);
 
-
-            final ViewTreeObserver vto = lineItemLv.getViewTreeObserver();
-            vto.addOnPreDrawListener(new ViewTreeObserver.OnPreDrawListener() {
-                @Override
-                public boolean onPreDraw() {
-                    int runnableLastPos = lineItemLv.getLastVisiblePosition();
-                    Log.v("runnable last", String.valueOf(runnableLastPos));
-                    Log.v("size of displayLilist", String.valueOf(displayLiList.size()));
-
-                    if (runnableLastPos < displayLiList.size() - 1) {
-                        Log.v("a new listview", "should be added");
-                        RelativeLayout overFlowRl = new RelativeLayout(getActivity());
-                        overFlowRl.setLayoutParams(relativeLayoutParams);
-                        horizLinearLayout.addView(overFlowRl, horizLinearLayout.indexOfChild(lineItemLv)+1);
-
-                        Log.v(String.valueOf(horizLinearLayout.indexOfChild(lineItemLv)),"line item lv");
+                int lvTop = lineItemLv.getTop();
+                int lvBottom = lineItemLv.getBottom();
+                int lastLvBottom = lvTop+lastLv.getTop()+lastLv.getHeight();
+                float lastLvHeight = lastLv.getHeight();
 
 
-                        mLayoutInflater.inflate(R.layout.overflow_relative_layout, overFlowRl);
-                        ListView overFlowLv = (ListView) overFlowRl.findViewById(R.id.overflow_list_view);
-                        List<LineItem> overFlowLiList = displayLiList.subList(runnableLastPos, displayLiList.size());
-                        LineItemListAdapter overFlowAdapter = new LineItemListAdapter(getActivity(), overFlowLiList, fontSize);
-                        overFlowLv.setAdapter(overFlowAdapter);
-                    }
+                float percentOffScreen = (lastLvBottom-lvBottom)/lastLvHeight;
+                Log.v("percent off",String.valueOf(percentOffScreen));
 
-                    vto.removeOnPreDrawListener(this);
-                    return true;
+                if(percentOffScreen>0.15){
+                    runnableLastPos = runnableLastPos-1;
                 }
-            });
+
+                //TODO: remove overflowed line items from list adapter
+
+                if (runnableLastPos < displayLiList.size() - 1) {
+
+                    ViewGroup parent = (ViewGroup) relativeLayout.getParent();
+                    parent.removeView(relativeLayout);
+
+                    overFlowLinearLayout.addView(relativeLayout, 0);
+
+                    LinearLayout.LayoutParams newParams = (LinearLayout.LayoutParams) overFlowLinearLayout.getLayoutParams();
+                    newParams.width = screenWidthDp*2/5;
+
+                    overFlowLinearLayout.setLayoutParams(newParams);
+
+                    LinearLayout.LayoutParams linLayParams = (LinearLayout.LayoutParams) relativeLayout.getLayoutParams();
+                    linLayParams.width = screenWidthDp/5;
+
+                    RelativeLayout overFlowRl = new RelativeLayout(getActivity());
+
+                    relativeLayout.setLayoutParams(linLayParams);
+                    overFlowRl.setLayoutParams(linLayParams);
+
+                    mLayoutInflater.inflate(R.layout.overflow_relative_layout, overFlowRl);
+                    overFlowLinearLayout.addView(overFlowRl,1);
+
+                    ListView overFlowLv = (ListView) overFlowRl.findViewById(R.id.overflow_list_view);
+
+                    List<LineItem> overFlowLiList = displayLiList.subList(runnableLastPos+1, displayLiList.size());
+                    LineItemListAdapter overFlowAdapter = new LineItemListAdapter(getActivity(), overFlowLiList, fontSize);
+                    overFlowLv.setAdapter(overFlowAdapter);
+
+                    overFlowLv.setOnItemClickListener(new AdapterView.OnItemClickListener() {
+
+                        @Override
+                        public void onItemClick(AdapterView<?> adapterView, View view, int i, long l) {
+
+                            //unregister the receiver so that refreshed orders aren't shown before they can be updated
+                            OrderMonitorBroadcaster.unregisterReceiver(ordersBroadcastReceiver);
+                            periodicUpdateHandler.removeCallbacks(periodicUpdateRunnable);
+
+                            ImageView checkImage = (ImageView) view.findViewById(R.id.item_checked_image);
+                            LineItem clickedLineItem = (LineItem) view.getTag();
+
+                            if (clickedLineItem.getUserData() != null && clickedLineItem.getUserData().equals(getString(R.string.checked))) {
+                                clickedLineItem.setUserData("");
+                                checkImage.setVisibility(View.INVISIBLE);
+                                orderMonitorData.updateLineItem(thisOrder.getId(), clickedLineItem.getId(), clickedLineItem);
+                            } else {
+                                clickedLineItem.setUserData(getString(R.string.checked));
+                                checkImage.setVisibility(View.VISIBLE);
+                                orderMonitorData.updateLineItem(thisOrder.getId(), clickedLineItem.getId(), clickedLineItem);
+                            }
+
+                            OrderMonitorBroadcaster.registerReceiver(ordersBroadcastReceiver, OrderMonitorData.BroadcastEvent.REFRESH_ORDERS);
+                            periodicUpdateHandler.post(periodicUpdateRunnable);
+
+                        }
+
+                    });
+
+                    addOverFlowViews(overFlowLv,overFlowRl,overFlowLinearLayout,overFlowLiList,1,thisOrder);
+                }
+                vto.removeOnGlobalLayoutListener(this);
+            }
+        });
 
 
-            lineItemLv.setOnItemClickListener(new AdapterView.OnItemClickListener() {
+        lineItemLv.setOnItemClickListener(new AdapterView.OnItemClickListener() {
+
+            @Override
+            public void onItemClick(AdapterView<?> adapterView, View view, int i, long l) {
+
+                //unregister the receiver so that refreshed orders aren't shown before they can be updated
+                OrderMonitorBroadcaster.unregisterReceiver(ordersBroadcastReceiver);
+                periodicUpdateHandler.removeCallbacks(periodicUpdateRunnable);
+
+                ImageView checkImage = (ImageView) view.findViewById(R.id.item_checked_image);
+                LineItem clickedLineItem = (LineItem) view.getTag();
+
+                if (clickedLineItem.getUserData()!=null&&clickedLineItem.getUserData().equals(getString(R.string.checked))) {
+                    clickedLineItem.setUserData("");
+                    checkImage.setVisibility(View.INVISIBLE);
+                    orderMonitorData.updateLineItem(thisOrder.getId(),clickedLineItem.getId(),clickedLineItem);
+                } else {
+                    clickedLineItem.setUserData(getString(R.string.checked));
+                    checkImage.setVisibility(View.VISIBLE);
+                    orderMonitorData.updateLineItem(thisOrder.getId(),clickedLineItem.getId(),clickedLineItem);
+                }
+
+                OrderMonitorBroadcaster.registerReceiver(ordersBroadcastReceiver,OrderMonitorData.BroadcastEvent.REFRESH_ORDERS);
+                periodicUpdateHandler.post(periodicUpdateRunnable);
+
+            }
+
+        });
+
+        doneButton.setTag(thisOrder.getId());
+
+        buttonList.add(doneButton);
+
+        doneButton.setOnClickListener(new View.OnClickListener() {
+            @Override
+            public void onClick(View v) {
+
+                RelativeLayout parentView = (RelativeLayout) v.getParent();
+
+                orderMonitorData.markDone((String) v.getTag(), thisOrder);
+
+                //TODO: delete view and remove from orderidlist, maybe wait for callback, it may come in again and a view will be added before its marked done...
+
+                horizLinearLayout.removeView(overFlowLinearLayout);
+
+                currentOrderHashMap.remove(thisOrder.getId());
+
+                buttonList.remove(doneButton);
+                countdownTvList.remove(countdownText);
+            }
+        });
+
+    }
+
+    private void addOverFlowViews(final ListView listView, final RelativeLayout relativeLayout,final LinearLayout overFlowLinearLayout,final List<LineItem> lineItemList,final int pos, final Order order){
+
+        final ViewTreeObserver vto = listView.getViewTreeObserver();
+
+        vto.addOnGlobalLayoutListener(new ViewTreeObserver.OnGlobalLayoutListener() {
+            @Override
+            public void onGlobalLayout() {
+
+                        int runnableLastPos = listView.getLastVisiblePosition();
+
+                View lastLv = listView.getChildAt(runnableLastPos);
+
+                int lvBottom = listView.getBottom();
+                int lastLvBottom = lastLv.getBottom();
+                float lastLvHeight = lastLv.getHeight();
+
+                float percentOffScreen = (lastLvBottom-lvBottom)/lastLvHeight;
+                if(percentOffScreen>0.10){
+                    runnableLastPos = runnableLastPos-1;
+                }
+
+                        if (runnableLastPos < lineItemList.size() - 1) {
+
+                            ViewGroup parent = (ViewGroup) relativeLayout.getParent();
+                            parent.removeView(relativeLayout);
+
+                            overFlowLinearLayout.addView(relativeLayout, pos);
+
+                            LinearLayout.LayoutParams newParams = (LinearLayout.LayoutParams) overFlowLinearLayout.getLayoutParams();
+                            newParams.width = screenWidthDp*(pos+2)/5;
+
+                            overFlowLinearLayout.setLayoutParams(newParams);
+
+                            LinearLayout.LayoutParams linLayParams = (LinearLayout.LayoutParams) relativeLayout.getLayoutParams();
+                            linLayParams.width = screenWidthDp/5;
+
+                            RelativeLayout overFlowRl = new RelativeLayout(getActivity());
+
+                            relativeLayout.setLayoutParams(linLayParams);
+                            overFlowRl.setLayoutParams(linLayParams);
+
+                            mLayoutInflater.inflate(R.layout.overflow_relative_layout, overFlowRl);
+                            overFlowLinearLayout.addView(overFlowRl,pos+1);
+
+
+                            ListView overFlowLv = (ListView) overFlowRl.findViewById(R.id.overflow_list_view);
+
+                            List<LineItem> overFlowLiList = lineItemList.subList(runnableLastPos+1, lineItemList.size());
+                            LineItemListAdapter overFlowAdapter = new LineItemListAdapter(getActivity(), overFlowLiList, fontSize);
+                            overFlowLv.setAdapter(overFlowAdapter);
+
+                            addOverFlowViews(overFlowLv,overFlowRl,overFlowLinearLayout,overFlowLiList,pos+1,order);
+
+                        }
+                        vto.removeOnGlobalLayoutListener(this);
+                    }
+                });
+
+
+            listView.setOnItemClickListener(new AdapterView.OnItemClickListener() {
 
                 @Override
                 public void onItemClick(AdapterView<?> adapterView, View view, int i, long l) {
 
-
+                    //TODO: hide or show check mark, don't wait for the update
                     //unregister the receiver so that refreshed orders aren't shown before they can be updated
                     OrderMonitorBroadcaster.unregisterReceiver(ordersBroadcastReceiver);
                     periodicUpdateHandler.removeCallbacks(periodicUpdateRunnable);
@@ -786,66 +619,153 @@ public class OrdersInProgressFragment extends Fragment {
                     ImageView checkImage = (ImageView) view.findViewById(R.id.item_checked_image);
                     LineItem clickedLineItem = (LineItem) view.getTag();
 
-                    if (clickedLineItem.getUserData()!=null&&clickedLineItem.getUserData().equals(getString(R.string.checked))) {
+                    if (clickedLineItem.getUserData() != null && clickedLineItem.getUserData().equals(getString(R.string.checked))) {
                         clickedLineItem.setUserData("");
                         checkImage.setVisibility(View.INVISIBLE);
-                        orderMonitorData.updateLineItem(thisOrder.getId(),clickedLineItem.getId(),clickedLineItem);
+                        orderMonitorData.updateLineItem(order.getId(), clickedLineItem.getId(), clickedLineItem);
                     } else {
                         clickedLineItem.setUserData(getString(R.string.checked));
                         checkImage.setVisibility(View.VISIBLE);
-                        orderMonitorData.updateLineItem(thisOrder.getId(),clickedLineItem.getId(),clickedLineItem);
+                        orderMonitorData.updateLineItem(order.getId(), clickedLineItem.getId(), clickedLineItem);
                     }
 
-                    OrderMonitorBroadcaster.registerReceiver(ordersBroadcastReceiver,OrderMonitorData.BroadcastEvent.REFRESH_ORDERS);
+                    OrderMonitorBroadcaster.registerReceiver(ordersBroadcastReceiver, OrderMonitorData.BroadcastEvent.REFRESH_ORDERS);
                     periodicUpdateHandler.post(periodicUpdateRunnable);
 
                 }
-
             });
-
-            doneButton.setTag(i);
-
-            buttonList.add(doneButton);
-
-            doneButton.setOnClickListener(new View.OnClickListener() {
-                @Override
-                public void onClick(View v) {
-
-                    RelativeLayout parentView = (RelativeLayout) v.getParent();
-
-                    LayoutTransition lt = new LayoutTransition();
-                    lt.enableTransitionType(LayoutTransition.CHANGE_DISAPPEARING);
-                    lt.addTransitionListener(new LayoutTransition.TransitionListener() {
-
-                        @Override
-                        public void startTransition(LayoutTransition transition, ViewGroup container, View view, int transitionType) {
-
-                        }
-
-                        @Override
-                        public void endTransition(LayoutTransition transition, ViewGroup container, View view, int transitionType) {
-
-                        }
-                    });
-
-
-                    Order doneOrder = progressOrdersList.get((Integer) v.getTag() - 1);
-
-                    orderMonitorData.markDone(doneOrder.getId(), doneOrder);
-
-                    parentView.setLayoutTransition(lt);
-                    v.setVisibility(View.INVISIBLE);
-                }
-            });
-
-        }
-
     }
 
-    private List<LineItem> sortItemsIntoBins(List<LineItem> lineItemList){
+
+
+    private void removeViewFromHorizLinearLayout(String orderId){
+        LinearLayout linearLayout = (LinearLayout) horizLinearLayout.findViewWithTag(orderId);
+        horizLinearLayout.removeView(linearLayout);
+    }
+
+    private int indexToDrawView(String orderId){
+
+        List<Order> orderList = new ArrayList<>();
+
+        for(String key:currentOrderHashMap.keySet()){
+            orderList.add(currentOrderHashMap.get(key));
+        }
+
+        Collections.sort(orderList, new Comparator<Order>() {
+            @Override
+            public int compare(Order order1, Order order2) {
+                if(order1.getCreatedTime()>order2.getCreatedTime()){
+                    return 1;
+                }else if(order1.getCreatedTime()<order2.getCreatedTime()){
+                    return-1;
+                }else{
+                    return 0;
+                }
+            }
+        });
+
+        for(int i=0;i<orderList.size();i++){
+            Order order = orderList.get(i);
+            if(order.getId().equals(orderId)){
+                return i;
+            }
+        }
+
+        return -1;
+    }
+
+    private boolean orderModified(Order localOrder, Order pulledOrder){
+
+
+        List<LineItem> localLineItems = localOrder.getLineItems();
+        List<LineItem> pulledLineItems = pulledOrder.getLineItems();
+
+        if(localLineItems.size()!=pulledLineItems.size()){
+            return true;
+        }
+
+        for(int i =0;i<localLineItems.size();i++){
+            if(!localLineItems.get(i).getName().equals(pulledLineItems.get(i).getName())){
+                return true;
+            }else {
+
+                LineItem localLineItem = localLineItems.get(i);
+                LineItem pulledLineItem = pulledLineItems.get(i);
+
+                //if one is null, but the other isn't the order has been modified
+                if(localLineItem.getModifications()==null^pulledLineItem.getModifications()==null){
+                    Log.v("exclusive OR","one modlist is null");
+                    return true;
+                }
+
+                //at this point, if one is null, they both are, so only need to null check one
+                if(localLineItem.getModifications()!=null) {
+                    if (localLineItem.getModifications().size() != pulledLineItem.getModifications().size()) {
+                        Log.v("different size","of mod list");
+                        return true;
+                    } else {
+                        for (int k = 0; k < localLineItem.getModifications().size(); k++) {
+                            if (!localLineItem.getModifications().get(k).getName().equals(pulledLineItem.getModifications().get(k).getName())) {
+                                Log.v("modifiers","aren't equal");
+                                return true;
+                            }
+                        }
+                    }
+                }
+            }
+        }
+
+        return false;
+    }
+
+
+    private void updateOrdersView() {
+
+
+
+        Order order;
+
+        for(int i = 0;i<progressOrdersList.size();i++){
+
+            order = progressOrdersList.get(i);
+            //if the order is new, add a view for it at the appropriate location and add its id to the list
+            if(!currentOrderHashMap.containsKey(order.getId())){
+                //addViewToHorizLinearLayout(i);
+                currentOrderHashMap.put(order.getId(),order);
+                int index = indexToDrawView(order.getId());
+                addViewToHorizLinearLayout(index,order.getId());
+            }else{
+                //view should have been added, check to see if it needs to be updated
+                if(orderModified(currentOrderHashMap.get(order.getId()),order)){
+                    removeViewFromHorizLinearLayout(order.getId());
+                    int index = indexToDrawView(order.getId());
+                    currentOrderHashMap.put(order.getId(),order);
+                    //TODO:get scroll position
+                    int scrollPos = scrollView.getScrollX();
+                    Log.v(String.valueOf(scrollPos),"scroll pos");
+                    addViewToHorizLinearLayout(index, order.getId());
+                    //TODO: reset scroll position, maybe check if its in bounds?
+
+                    //TODO: wait to do this until after the screen has been drawn
+                    scrollView.setScrollX(scrollPos+100);
+                }
+            }
+        }
+
+        Set<String> keySet = currentOrderHashMap.keySet();
+
+        for(String key:keySet){
+            //check if an order was deleted from the station
+            if(!progressOrdersList.contains(currentOrderHashMap.get(key))){
+                currentOrderHashMap.remove(key);
+                removeViewFromHorizLinearLayout(key);
+            }
+        }
+    }
+
+    private List<LineItem> sortItemsIntoBins(List<LineItem> lineItemList, Order order){
 
         binTreeMap.clear();
-
 
         for(LineItem li:lineItemList){
             if(li.getBinName()==null){
@@ -877,14 +797,35 @@ public class OrdersInProgressFragment extends Fragment {
 
         List<LineItem> displayList = new ArrayList<>();
 
+
+        //TODO: if there isn't a bin with "", but there is more than a null bin, add a line item at the beginning with the table name
+
         for(String key:binTreeMap.keySet()){
             LineItem tagLineItem = new LineItem();
             tagLineItem.setId(getString(R.string.tag_line_item));
             tagLineItem.setName(key);
-            displayList.add(tagLineItem);
+            if(!tagLineItem.getName().equals("null")){
+                displayList.add(tagLineItem);
+            }
+            if(tagLineItem.getName().equals("")){
+                if(order.getTitle()!=null){
+                    tagLineItem.setName(order.getTitle());
+                }
+            }
+
             List<LineItem> correspBinList = binTreeMap.get(key);
             for(LineItem lineItem:correspBinList){
                 displayList.add(lineItem);
+                List<Modification> modList = lineItem.getModifications();
+                //TODO: sort modifiers alphabetically
+                if(modList!=null) {
+                    for (Modification mo : modList) {
+                        LineItem modLineItem = new LineItem();
+                        modLineItem.setName("  -" + mo.getName());
+                        modLineItem.setId(getString(R.string.modifier));
+                        displayList.add(modLineItem);
+                    }
+                }
             }
         }
 

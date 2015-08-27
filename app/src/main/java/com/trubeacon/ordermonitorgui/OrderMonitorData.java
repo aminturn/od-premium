@@ -225,10 +225,9 @@ public class OrderMonitorData {
         }
     }
 
-
     public void refreshOrders(){
 
-        //TODO:make this a user preference
+        //TODO: make this a user preference
         DateTime start = DateTime.now().minusMinutes(360);
         DateTime stop = DateTime.now();
 
@@ -274,8 +273,8 @@ public class OrderMonitorData {
                             }
 
                         },
-                        Filter.filter("clientCreatedTime", Filter.Comparator.GREATER_THAN, start.getMillis()),
-                        Filter.filter("clientCreatedTime", Filter.Comparator.LESS_THAN, stop.getMillis()));
+                        Filter.filter("createdTime", Filter.Comparator.GREATER_THAN, start.getMillis()),
+                        Filter.filter("createdTime", Filter.Comparator.LESS_THAN, stop.getMillis()));
             }else {
                 Toast.makeText(mContext, "Please check your billing status", Toast.LENGTH_LONG).show();
                 progressOrdersList.clear();
@@ -285,7 +284,6 @@ public class OrderMonitorData {
         }
     }
 
-
     public void markAllOrdersDone(){
         for(Order o:progressOrdersList){
             o.setNote(ORDER_DONE_KEY);
@@ -293,11 +291,9 @@ public class OrderMonitorData {
         }
     }
 
-
     public boolean showLineItem(String itemName){
 
         boolean showLineItem = true;
-
 
             SharedPreferences sp = PreferenceManager.getDefaultSharedPreferences(mContext);
             String[] defStrings = new String[1];
@@ -318,7 +314,6 @@ public class OrderMonitorData {
 
         return showLineItem;
     }
-
 
     //TODO: add a try catch here...not having the permissions caused the app to crash
     public void markDone(String orderId,Order updateOrder){
@@ -357,10 +352,10 @@ public class OrderMonitorData {
 
     public void updateLineItem(String orderId, String lineItemId, LineItem lineItemUpdate){
 
-        CloverService.getService().updateOrderLineItem(mId,token,orderId,lineItemId,lineItemUpdate,new UpdateOrderLineItem.UpdateOrderLineItemCallback(){
+        CloverService.getService().updateOrderLineItem(mId, token, orderId, lineItemId, lineItemUpdate, new UpdateOrderLineItem.UpdateOrderLineItemCallback() {
             @Override
             public void onUpdateOrderLineItem(LineItem lineItem) {
-                Log.v("line item successfully"," updated");
+                Log.v("line item successfully", " updated");
             }
 
             @Override
@@ -401,7 +396,6 @@ public class OrderMonitorData {
                     }
                 }
 
-
                if(onlyShowPaid) {
                    if (order.getOrderType() == null) {
                        if (devicesSelected.contains(order.getDevice().getId()) && hasLineItems&&order.getState().equals(mContext.getString(R.string.locked))) {
@@ -421,7 +415,6 @@ public class OrderMonitorData {
                }
 
             }
-
 
             progressOrdersList.clear();
             doneOrdersList.clear();

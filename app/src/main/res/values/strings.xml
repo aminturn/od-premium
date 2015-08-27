@@ -151,6 +151,8 @@
 
     <string name = "tag_line_item">tagged_line_item</string>
 
+    <string name = "modifier">modifier</string>
+
 
 
 
