@@ -92,6 +92,7 @@
     <orderEntry type="library" exported="" name="jackson-databind-2.2.1" level="project" />
     <orderEntry type="library" exported="" name="async-http-client-1.8.4" level="project" />
     <orderEntry type="library" exported="" name="netty-3.9.0.Final" level="project" />
+    <orderEntry type="library" exported="" name="commons-lang3-3.4" level="project" />
     <orderEntry type="library" exported="" name="support-annotations-22.1.1" level="project" />
     <orderEntry type="library" exported="" name="support-v4-22.1.1" level="project" />
     <orderEntry type="library" exported="" name="jackson-annotations-2.2.1" level="project" />
