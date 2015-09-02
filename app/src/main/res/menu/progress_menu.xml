@@ -4,18 +4,17 @@
 
     <item android:id = "@+id/clear_all"
         android:title = "@string/clear_all"
-        android:orderInCategory="1"
+        android:orderInCategory="3"
         app:showAsAction = "ifRoom"/>
 
     <item android:title = "              "
-        android:orderInCategory="2"
+        android:orderInCategory="4"
         app:showAsAction = "ifRoom"
         android:enabled="false"/>
 
     <item android:title = "              "
-        android:orderInCategory="2"
+        android:orderInCategory="5"
         app:showAsAction = "ifRoom"
         android:enabled="false"/>
-
 
 </menu>

@@ -96,11 +96,14 @@ public class OrderMonitorPreferences extends PreferenceFragment implements Share
 
         SharedPreferences sp = PreferenceManager.getDefaultSharedPreferences(getActivity());
 
-        Preference displayPref = findPreference(getString(R.string.display_pref));
-        displayPref.setSummary(sp.getString(getString(R.string.display_pref), ""));
-
         Preference fontPref = findPreference(getString(R.string.font_size_pref));
         fontPref.setSummary(sp.getString(getString(R.string.font_size_pref), "") + " sp");
+
+        Preference widthPref = findPreference(getString(R.string.order_width_key));
+        widthPref.setSummary(sp.getString(getString(R.string.order_width_key),""));
+
+        Preference orderAgePref = findPreference(getString(R.string.age_of_orders_pref));
+        orderAgePref.setSummary(sp.getString(getString(R.string.age_of_orders_pref),"") + " Hours");
 
         refresh();
 
@@ -144,8 +147,14 @@ public class OrderMonitorPreferences extends PreferenceFragment implements Share
             Preference fontPref = findPreference(s);
             // Set summary to be the user-description for the selected value
             fontPref.setSummary(sharedPreferences.getString(s, "") + " sp");
+        }else if(s.equals(getString(R.string.order_width_key))){
+            Preference widthPref = findPreference(s);
+            widthPref.setSummary(sharedPreferences.getString(s,""));
         }
-
+        else if(s.equals(getString(R.string.age_of_orders_pref))){
+            Preference ageOfOrdersPref = findPreference(s);
+            ageOfOrdersPref.setSummary(sharedPreferences.getString(s,"") + " Hours");
+        }
     }
 
     @Override
@@ -241,11 +250,29 @@ public class OrderMonitorPreferences extends PreferenceFragment implements Share
     }
 
     private void updateTagPreferences(){
+
+        //TODO: add each tag as a list preference to the colorpreference screen and populate with color array
+
         String[] entries = new String[tagList.size()];
         String[] entryVals = new String[tagList.size()];
 
+        PreferenceCategory typePrefCat = new PreferenceCategory(getActivity());
+        typePrefCat.setTitle("Label Colors");
+        typePrefCat.setSummary("Items with these labels will be displaed in the selected color");
+
+        colorPrefScreen.addPreference(typePrefCat);
+
         int i =0;
         for(Tag t:tagList){
+            ListPreference labelColorPref = new ListPreference(getActivity());
+            labelColorPref.setEntries(getResources().getStringArray(R.array.label_color_entries));
+            labelColorPref.setEntryValues(getResources().getStringArray(R.array.label_color_vals));
+            labelColorPref.setTitle(t.getName());
+            labelColorPref.setKey(t.getName());
+            labelColorPref.setSummary("Items with this label will be displayed in the selected color");
+            labelColorPref.setDefaultValue(getString(R.string.disregardstr));
+            typePrefCat.addPreference(labelColorPref);
+
             entries[i] = t.getName();
             //maybe use ID?
             entryVals[i] = t.getName();
@@ -254,8 +281,6 @@ public class OrderMonitorPreferences extends PreferenceFragment implements Share
 
         tagPref.setEntries(entries);
         tagPref.setEntryValues(entryVals);
-
-
     }
 
 
@@ -296,7 +321,6 @@ public class OrderMonitorPreferences extends PreferenceFragment implements Share
 
             sp.edit().putBoolean(ORDER_TYPE_FIRST_TIME,false).apply();
         }
-
     }
 
     private void updateDevicePreferences(){

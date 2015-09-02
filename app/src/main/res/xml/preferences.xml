@@ -16,15 +16,21 @@
     <PreferenceCategory
         android:title = "@string/display_settings">
 
-            <ListPreference
-            android:key="@string/display_pref"
-            android:title="@string/number_of_orders_display"
-            android:entries="@array/display_sizes"
-            android:entryValues="@array/display_values"
-            android:defaultValue="@string/five"
-            android:summary=""/>
+        <ListPreference
+            android:key = "@string/order_width_key"
+            android:title = "Order views to fit on screen"
+            android:entries = "@array/order_width_entries"
+            android:entryValues="@array/order_width_values"
+            android:defaultValue="@string/str4"/>
 
-            <ListPreference
+        <ListPreference
+            android:key = "@string/age_of_orders_pref"
+            android:title = "Age of orders to display"
+            android:entries = "@array/order_age_entries"
+            android:entryValues="@array/order_age_values"
+            android:defaultValue="@string/str1.5"/>
+
+        <ListPreference
             android:key = "@string/font_size_pref"
             android:title = "@string/font_pref_title"
             android:entries = "@array/font_pref_array"
@@ -33,11 +39,19 @@
 
         <CheckBoxPreference
             android:key = "@string/display_order_type_pref"
-            android:title = "@string/display_order_type_pref_title"/>
+            android:title = "@string/display_order_type_pref_title"
+            android:defaultValue = "false"/>
+
+        <CheckBoxPreference
+            android:key = "@string/overflow_pref_key"
+            android:title = "@string/overflow_pref_title"
+            android:summary = "Show items that overflow the order view in a neighboring view"
+            android:defaultValue="true"/>
 
         <CheckBoxPreference
             android:key = "@string/display_device_pref"
-            android:title = "@string/display_device_pref_title"/>
+            android:title = "@string/display_device_pref_title"
+            android:defaultValue = "false"/>
 
         <CheckBoxPreference
             android:key = "@string/order_timer_pref"
@@ -47,6 +61,12 @@
         <CheckBoxPreference
             android:key = "@string/after_paid_pref"
             android:title = "@string/after_paid_title"/>
+
+        <CheckBoxPreference
+            android:key = "@string/show_done_items_key"
+            android:title = "Show items marked done"
+            android:summary = "Line items marked done will be shown if checked"
+            android:defaultValue="true"/>
 
     </PreferenceCategory>
 
@@ -59,7 +79,6 @@
             android:enabled="false"
             android:summary = "Select which types of items to hide on this device"
             android:defaultValue="@array/order_type_entry_vals"/>
-
 
         <MultiSelectListPreference
             android:background = "@color/background"

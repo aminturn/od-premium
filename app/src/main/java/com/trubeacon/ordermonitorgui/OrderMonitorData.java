@@ -2,6 +2,7 @@ package com.trubeacon.ordermonitorgui;
 
 import android.content.Context;
 import android.content.SharedPreferences;
+import android.graphics.Color;
 import android.preference.PreferenceManager;
 import android.util.Log;
 import android.widget.Toast;
@@ -148,7 +149,6 @@ public class OrderMonitorData {
         CloverService.getService().getBillingInfo(mId, token, appId, new GetBillingInfo.GetBillingInfoCallback() {
             @Override
             public void onGetBillingInfo(AppBillingInfo appBillingInfo) {
-
                 billingStatus = appBillingInfo.getStatus();
                 SharedPreferences sp = PreferenceManager.getDefaultSharedPreferences(mContext);
                 sp.edit().putString(mContext.getString(R.string.billing_status), billingStatus.toString()).apply();
@@ -157,9 +157,7 @@ public class OrderMonitorData {
 
             @Override
             public void onFailGetBillingInfo(Error error) {
-
                 Log.v("failed getbillinginfo", error.getMessage());
-
             }
         });
     }
@@ -227,15 +225,22 @@ public class OrderMonitorData {
 
     public void refreshOrders(){
 
-        //TODO: make this a user preference
-        DateTime start = DateTime.now().minusMinutes(360);
+        SharedPreferences sp = PreferenceManager.getDefaultSharedPreferences(mContext);
+        String ageOfOrdersStr = sp.getString(mContext.getString(R.string.age_of_orders_pref), mContext.getString(R.string.age_of_orders_pref));
+        Log.v("age of orders", ageOfOrdersStr);
+        float ageOfOrdersHours = Float.parseFloat(ageOfOrdersStr);
+        Log.v("hours", String.valueOf(ageOfOrdersHours));
+        int ageOfOrdersMinutes = (int) (ageOfOrdersHours*60);
+        Log.v("minutes",String.valueOf(ageOfOrdersMinutes));
+
+        DateTime start = DateTime.now().minusMinutes(ageOfOrdersMinutes);
         DateTime stop = DateTime.now();
 
         if(mId.equals("")||token.equals("")){
             Toast.makeText(OrderMonitorGUI.getAppContext(), "Please connect to your Clover account from the Settings menu", Toast.LENGTH_LONG).show();
         }else {
 
-            SharedPreferences sp = PreferenceManager.getDefaultSharedPreferences(mContext);
+
             Long lastBillingCheck = sp.getLong(mContext.getString(R.string.last_billing_check), 0);
             DateTime lastBillingDateTime = new DateTime(lastBillingCheck);
             DateTime now = DateTime.now();
@@ -291,7 +296,33 @@ public class OrderMonitorData {
         }
     }
 
-    public boolean showLineItem(String itemName){
+    public int lineItemColor(String itemName){
+
+        //key to preference is label name
+
+        for(Tag t:tagList){
+            for(Item item:t.getItems()){
+                //if item has this tag, find the color for this tag from preferences
+                if(item.getName().equals(itemName)){
+                    SharedPreferences sp = PreferenceManager.getDefaultSharedPreferences(mContext);
+                    String itemColorStr = sp.getString(t.getName(),mContext.getString(R.string.disregardstr));
+
+                    if(!itemColorStr.equals(mContext.getString(R.string.disregardstr))){
+                        int lineItemColor = Color.parseColor(itemColorStr);
+                        return lineItemColor;
+                    }
+                }
+
+            }
+        }
+
+        Log.v("didn't find item","in tags");
+
+        return Color.BLACK;
+    }
+
+
+    public boolean showLineItem(String itemName, LineItem lineItem){
 
         boolean showLineItem = true;
 
@@ -300,6 +331,13 @@ public class OrderMonitorData {
             Set<String> defset = new HashSet<>(Arrays.asList(defStrings));
 
             Set<String> tagsSelected = sp.getStringSet(mContext.getString(R.string.item_tag_pref), defset);
+            boolean showDoneLineItems = sp.getBoolean(mContext.getString(R.string.show_done_items_key),true);
+
+            if(!showDoneLineItems&&lineItem.getUserData()!=null){
+                if(lineItem.getUserData().equals(mContext.getString(R.string.checked))){
+                    return false;
+                }
+            }
 
             for (Tag t : tagList) {
                 if (t.getItems() != null && tagsSelected.contains(t.getName())) {
@@ -356,14 +394,14 @@ public class OrderMonitorData {
             @Override
             public void onUpdateOrderLineItem(LineItem lineItem) {
                 Log.v("line item successfully", " updated");
+                OrderMonitorBroadcaster.sendBroadcast(BroadcastEvent.LINE_ITEM_UPDATE);
             }
 
             @Override
             public void onFailUpdateOrderLineItem(Error error) {
-
+                OrderMonitorBroadcaster.sendBroadcast(BroadcastEvent.LINE_ITEM_UPDATE);
             }
         });
-
     }
 
     private void updateProgressOrdersList(List<Order> allOrders){
@@ -390,7 +428,7 @@ public class OrderMonitorData {
 
                 if(order.getLineItems()!=null){
                     for (LineItem li : order.getLineItems()) {
-                        if (showLineItem(li.getName())) {
+                        if (showLineItem(li.getName(),li)) {
                             hasLineItems = true;
                         }
                     }
@@ -451,10 +489,12 @@ public class OrderMonitorData {
     public enum BroadcastEvent{
 
         REFRESH_ORDERS,
-        REFRESH_DEVICES_AND_ORDER_TYPES;
+        REFRESH_DEVICES_AND_ORDER_TYPES,
+        LINE_ITEM_UPDATE;
 
         public static final String REFRESH_ORDERS_VALUE = "REFRESH_ORDERS";
         public static final String REFRESH_DEVS_AND_ORDER_TYPES_VALUE = "REFRESH_DEVICES_AND_ORDER_TYPES";
+        public static final String LINE_ITEM_UPDATE_VALUE = "LINE_ITEM_UPDATE";
 
     }
 

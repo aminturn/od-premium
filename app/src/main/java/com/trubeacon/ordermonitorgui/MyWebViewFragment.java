@@ -3,6 +3,7 @@ package com.trubeacon.ordermonitorgui;
 import android.app.Fragment;
 import android.content.SharedPreferences;
 import android.graphics.Bitmap;
+import android.net.http.SslError;
 import android.os.Bundle;
 import android.preference.PreferenceManager;
 import android.support.annotation.Nullable;
@@ -11,6 +12,7 @@ import android.util.Log;
 import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
+import android.webkit.SslErrorHandler;
 import android.webkit.WebView;
 import android.webkit.WebViewClient;
 
@@ -46,10 +48,10 @@ public class MyWebViewFragment extends Fragment {
                     "?client_id=" + appId +
                     "&redirect_uri=" + redirectUri;
 
-
             webView.getSettings().setJavaScriptEnabled(true);
 
             webView.setWebViewClient(new WebViewClient() {
+
                 public void onPageStarted(WebView view, String url, Bitmap favicon) {
 
                     // Parses the fetched URL

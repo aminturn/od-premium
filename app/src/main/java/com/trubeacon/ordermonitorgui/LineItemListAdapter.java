@@ -28,11 +28,17 @@ public class LineItemListAdapter extends BaseAdapter {
     private List<LineItem> lineItemList = new ArrayList<>();
     private Context mContext;
     private float fontSize;
+    private OrderMonitorData orderMonitorData = OrderMonitorData.getOrderMonitorData();
 
     public LineItemListAdapter(Context context,List<LineItem> lineItemList,float fontSize){
         this.lineItemList = lineItemList;
         mContext = context;
         this.fontSize=fontSize;
+    }
+
+    public void updateAdapter(List<LineItem> lineItemList){
+        this.lineItemList = lineItemList;
+        notifyDataSetChanged();
     }
 
 
@@ -95,13 +101,14 @@ public class LineItemListAdapter extends BaseAdapter {
         }
 
 
-
         if(!thisLineItem.getId().equals(mContext.getString(R.string.tag_line_item))) {
 
             //line item is an actual line item, not a separator
-
             view.setBackgroundColor(mContext.getResources().getColor(R.color.white));
-            lineItemDetailTv.setTextColor(mContext.getResources().getColor(R.color.black));
+
+            int lineItemColor = orderMonitorData.lineItemColor(thisLineItem.getName());
+
+            lineItemDetailTv.setTextColor(lineItemColor);
 
             if (thisLineItem.getUserData() != null && thisLineItem.getUserData().equals(mContext.getString(R.string.checked))) {
                 itemDoneIv.setVisibility(View.VISIBLE);
@@ -111,21 +118,6 @@ public class LineItemListAdapter extends BaseAdapter {
 
             String lineItemDetail = thisLineItem.getName();
 
-            //TODO: move this into ordersinprogressfragment
-//            List<Modification> modList = thisLineItem.getModifications();
-//            if (modList != null) {
-//
-//                Collections.sort(modList, new Comparator<Modification>() {
-//                    @Override
-//                    public int compare(Modification m1, Modification m2) {
-//                        return m1.getName().compareTo(m2.getName());
-//                    }
-//                });
-//
-//                for (Modification mo : modList) {
-//                    lineItemDetail = lineItemDetail + "\r\n" + "  -" + mo.getName();
-//                }
-//            }
 
             if (thisLineItem.getBinName() != null) {
                 Log.v("bin name", thisLineItem.getBinName());
@@ -143,21 +135,11 @@ public class LineItemListAdapter extends BaseAdapter {
 
         }else{
             //line item is a separator
-
             lineItemDetailTv.setText(thisLineItem.getName());
             view.setBackgroundColor(mContext.getResources().getColor(R.color.background));
             lineItemDetailTv.setTextColor(mContext.getResources().getColor(R.color.white));
             itemDoneIv.setVisibility(View.INVISIBLE);
         }
-
-
-
-        int widthMeasureSpec = View.MeasureSpec.makeMeasureSpec(ViewGroup.LayoutParams.MATCH_PARENT, View.MeasureSpec.EXACTLY);
-        int heightMeasureSpec = View.MeasureSpec.makeMeasureSpec(ViewGroup.LayoutParams.WRAP_CONTENT, View.MeasureSpec.EXACTLY);
-        view.measure(widthMeasureSpec,heightMeasureSpec);
-
-        Log.v(String.valueOf(view.getMeasuredHeight()),"single view measheight");
-
 
         return view;
     }
