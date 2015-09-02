@@ -103,7 +103,7 @@ public class OrderMonitorPreferences extends PreferenceFragment implements Share
         widthPref.setSummary(sp.getString(getString(R.string.order_width_key),""));
 
         Preference orderAgePref = findPreference(getString(R.string.age_of_orders_pref));
-        orderAgePref.setSummary(sp.getString(getString(R.string.age_of_orders_pref),"") + " Hours");
+        orderAgePref.setSummary(sp.getString(getString(R.string.age_of_orders_pref),"") + " Hour(s)");
 
         refresh();
 
@@ -153,7 +153,7 @@ public class OrderMonitorPreferences extends PreferenceFragment implements Share
         }
         else if(s.equals(getString(R.string.age_of_orders_pref))){
             Preference ageOfOrdersPref = findPreference(s);
-            ageOfOrdersPref.setSummary(sharedPreferences.getString(s,"") + " Hours");
+            ageOfOrdersPref.setSummary(sharedPreferences.getString(s,"") + " Hour(s)");
         }
     }
 
