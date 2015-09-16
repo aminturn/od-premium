@@ -13,6 +13,9 @@ import android.graphics.Canvas;
 import android.graphics.Color;
 import android.graphics.ColorFilter;
 import android.graphics.drawable.Drawable;
+import android.media.Ringtone;
+import android.media.RingtoneManager;
+import android.net.Uri;
 import android.opengl.Visibility;
 import android.os.Bundle;
 import android.os.Handler;
@@ -859,9 +862,19 @@ public class OrdersInProgressFragment extends Fragment {
             //if the order is new, add a view for it at the appropriate location and add its id to the list
             if(!currentOrderHashMap.containsKey(order.getId())){
                 //addViewToHorizLinearLayout(i);
+                SharedPreferences sp = PreferenceManager.getDefaultSharedPreferences(getActivity());
+                boolean playNotifcation = sp.getBoolean(getString(R.string.play_sound),true);
+
+                if(playNotifcation){
+                    Uri notification = RingtoneManager.getDefaultUri(RingtoneManager.TYPE_NOTIFICATION);
+                    Ringtone r = RingtoneManager.getRingtone(getActivity(),notification);
+                    r.play();
+                }
+
                 currentOrderHashMap.put(order.getId(),order);
                 int index = indexToDrawView(order.getId());
                 addViewToHorizLinearLayout(index,order.getId());
+
             }else{
                 //view should have been added, check to see if it needs to be updated
                 if(orderModified(currentOrderHashMap.get(order.getId()),order)){

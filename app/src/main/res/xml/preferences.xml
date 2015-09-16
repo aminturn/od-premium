@@ -59,6 +59,12 @@
             android:defaultValue="true"/>
 
         <CheckBoxPreference
+            android:key = "@string/play_sound"
+            android:title = "Play a notification sound when a new order is displayed?"
+            android:summary="Uses default notification sound from device settings"
+            android:defaultValue = "true"/>
+
+        <CheckBoxPreference
             android:key = "@string/order_timer_pref"
             android:title = "@string/order_timer_pref_title"
             android:defaultValue="true"/>

@@ -149,6 +149,10 @@ public class OrderMonitorData {
         CloverService.getService().getBillingInfo(mId, token, appId, new GetBillingInfo.GetBillingInfoCallback() {
             @Override
             public void onGetBillingInfo(AppBillingInfo appBillingInfo) {
+
+                Log.v("app label", appBillingInfo.getAppSubscription().getLabel());
+                Log.v("app id",appBillingInfo.getAppSubscription().getId());
+
                 billingStatus = appBillingInfo.getStatus();
                 SharedPreferences sp = PreferenceManager.getDefaultSharedPreferences(mContext);
                 sp.edit().putString(mContext.getString(R.string.billing_status), billingStatus.toString()).apply();
@@ -227,11 +231,8 @@ public class OrderMonitorData {
 
         SharedPreferences sp = PreferenceManager.getDefaultSharedPreferences(mContext);
         String ageOfOrdersStr = sp.getString(mContext.getString(R.string.age_of_orders_pref), mContext.getString(R.string.age_of_orders_pref));
-        Log.v("age of orders", ageOfOrdersStr);
         float ageOfOrdersHours = Float.parseFloat(ageOfOrdersStr);
-        Log.v("hours", String.valueOf(ageOfOrdersHours));
         int ageOfOrdersMinutes = (int) (ageOfOrdersHours*60);
-        Log.v("minutes",String.valueOf(ageOfOrdersMinutes));
 
         DateTime start = DateTime.now().minusMinutes(ageOfOrdersMinutes);
         DateTime stop = DateTime.now();

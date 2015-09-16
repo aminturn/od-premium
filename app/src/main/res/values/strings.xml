@@ -207,4 +207,6 @@
 
     <string name = "done">Done</string>
 
+    <string name = "play_sound">play_sound</string>
+
 </resources>
