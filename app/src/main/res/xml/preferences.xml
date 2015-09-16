@@ -38,20 +38,25 @@
             android:defaultValue="@string/str20"/>
 
         <CheckBoxPreference
-            android:key = "@string/display_order_type_pref"
-            android:title = "@string/display_order_type_pref_title"
-            android:defaultValue = "false"/>
-
-        <CheckBoxPreference
             android:key = "@string/overflow_pref_key"
             android:title = "@string/overflow_pref_title"
             android:summary = "Show items that overflow the order view in a neighboring view"
             android:defaultValue="true"/>
 
         <CheckBoxPreference
+            android:key = "@string/display_order_type_pref"
+            android:title = "@string/display_order_type_pref_title"
+            android:defaultValue = "false"/>
+
+        <CheckBoxPreference
             android:key = "@string/display_device_pref"
             android:title = "@string/display_device_pref_title"
             android:defaultValue = "false"/>
+
+        <CheckBoxPreference
+            android:key = "@string/show_time_stamp_and_ticket_number"
+            android:title = "@string/show_time_stamp_and_ticket_number_title"
+            android:defaultValue="true"/>
 
         <CheckBoxPreference
             android:key = "@string/order_timer_pref"
@@ -62,11 +67,14 @@
             android:key = "@string/after_paid_pref"
             android:title = "@string/after_paid_title"/>
 
-        <CheckBoxPreference
-            android:key = "@string/show_done_items_key"
-            android:title = "Show items marked done"
-            android:summary = "Line items marked done will be shown if checked"
-            android:defaultValue="true"/>
+
+        <MultiSelectListPreference
+            android:key = "@string/item_states_key"
+            android:title = "Item States"
+            android:summary = "Choose the state of items to be shown on this display (Ordered, Ready, Done)"
+            android:entries="@array/item_state_entries"
+            android:entryValues="@array/item_state_vals"
+            android:defaultValue="@array/item_state_vals"/>
 
     </PreferenceCategory>
 

@@ -129,4 +129,16 @@
         <item>@string/str6</item>
     </array>
 
+    <array name = "item_state_entries">
+        <item>@string/ordered</item>
+        <item>@string/ready</item>
+        <item>@string/done</item>
+    </array>
+
+    <array name = "item_state_vals">
+        <item>@string/ordered</item>
+        <item>@string/ready</item>
+        <item>@string/served</item>
+    </array>
+
 </resources>

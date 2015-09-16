@@ -29,11 +29,13 @@ public class LineItemListAdapter extends BaseAdapter {
     private Context mContext;
     private float fontSize;
     private OrderMonitorData orderMonitorData = OrderMonitorData.getOrderMonitorData();
+    private int bodyColor;
 
-    public LineItemListAdapter(Context context,List<LineItem> lineItemList,float fontSize){
+    public LineItemListAdapter(Context context,List<LineItem> lineItemList,float fontSize, int bodyColor){
         this.lineItemList = lineItemList;
         mContext = context;
         this.fontSize=fontSize;
+        this.bodyColor = bodyColor;
     }
 
     public void updateAdapter(List<LineItem> lineItemList){
@@ -64,8 +66,6 @@ public class LineItemListAdapter extends BaseAdapter {
         }else{
             return true;
         }
-
-        //TODO: associate modifications with line item, so that they can be cleared when the item is cleared
     }
 
     @Override
@@ -104,27 +104,29 @@ public class LineItemListAdapter extends BaseAdapter {
         if(!thisLineItem.getId().equals(mContext.getString(R.string.tag_line_item))) {
 
             //line item is an actual line item, not a separator
-            view.setBackgroundColor(mContext.getResources().getColor(R.color.white));
+            view.setBackgroundColor(bodyColor);
 
             int lineItemColor = orderMonitorData.lineItemColor(thisLineItem.getName());
 
             lineItemDetailTv.setTextColor(lineItemColor);
 
-            if (thisLineItem.getUserData() != null && thisLineItem.getUserData().equals(mContext.getString(R.string.checked))) {
-                itemDoneIv.setVisibility(View.VISIBLE);
-            } else {
+            //if null or ordered, image is invisible
+            if (thisLineItem.getUserData() == null || thisLineItem.getUserData().equals(mContext.getString(R.string.ordered))) {
                 itemDoneIv.setVisibility(View.INVISIBLE);
+            //if ready, image visible with single check
+            } else if(thisLineItem.getUserData().equals(mContext.getString(R.string.ready))){
+                itemDoneIv.setVisibility(View.VISIBLE);
+                itemDoneIv.setImageDrawable(mContext.getResources().getDrawable(R.drawable.ic_done_black_24dp));
+            //if served, image visible with double check
+            }else{
+                itemDoneIv.setVisibility(View.VISIBLE);
+                itemDoneIv.setImageDrawable(mContext.getResources().getDrawable(R.drawable.ic_done_all_black_24dp));
             }
 
             String lineItemDetail = thisLineItem.getName();
 
 
-            if (thisLineItem.getBinName() != null) {
-                Log.v("bin name", thisLineItem.getBinName());
-            } else {
-                Log.v("bin name", " is null");
-            }
-
+            //TODO: change how custom modifier is shown
             if (thisLineItem.getNote() != null) {
                 lineItemDetail = lineItemDetail + "\r\n" + "  -" + thisLineItem.getNote();
             }

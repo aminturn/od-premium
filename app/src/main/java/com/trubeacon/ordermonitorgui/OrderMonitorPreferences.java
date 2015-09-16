@@ -258,7 +258,7 @@ public class OrderMonitorPreferences extends PreferenceFragment implements Share
 
         PreferenceCategory typePrefCat = new PreferenceCategory(getActivity());
         typePrefCat.setTitle("Label Colors");
-        typePrefCat.setSummary("Items with these labels will be displaed in the selected color");
+        typePrefCat.setSummary("Items with these labels will be displayed in the selected color");
 
         colorPrefScreen.addPreference(typePrefCat);
 

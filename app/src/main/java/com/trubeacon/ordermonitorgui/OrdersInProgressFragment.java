@@ -55,6 +55,7 @@ import com.tru.clover.api.order.LineItem;
 import com.tru.clover.api.order.Modification;
 import com.tru.clover.api.order.Order;
 
+import org.apache.commons.lang3.StringUtils;
 import org.joda.time.DateTime;
 import org.joda.time.Seconds;
 import org.joda.time.format.DateTimeFormat;
@@ -75,11 +76,6 @@ import java.util.Set;
 import java.util.TreeMap;
 import java.util.concurrent.atomic.AtomicBoolean;
 
-
-/**
- * Created by Andrew on 4/30/2015.
- */
-
 public class OrdersInProgressFragment extends Fragment {
 
     private List<Order> progressOrdersList = new ArrayList<>();
@@ -91,12 +87,8 @@ public class OrdersInProgressFragment extends Fragment {
     private ActionBar actionBar;
     private List<Button> buttonList = new ArrayList<>();
 
-    private static String actionBarTitle = "Orders In Progress";
-
     private Handler periodicUpdateHandler = new Handler();
-
     private Handler countdownHandler = new Handler();
-
     private static int refreshRateMs = 5000;
 
     private boolean overFlow;
@@ -104,7 +96,11 @@ public class OrdersInProgressFragment extends Fragment {
     private boolean showOrigin;
     private float fontSize;
     private boolean showTimer;
-    private boolean showDoneItems;
+
+    private boolean showOrderedItems;
+    private boolean showReadyItems;
+    private boolean showServedItems;
+
     private int denominatorForWidth;
     private TreeMap<String,List<LineItem>> binTreeMap = new TreeMap<String,List<LineItem>>();
 
@@ -112,7 +108,6 @@ public class OrdersInProgressFragment extends Fragment {
     private OrderMonitorData orderMonitorData = OrderMonitorData.getOrderMonitorData();
 
     private List<TextView> countdownTvList = new ArrayList<>();
-
 
     private Runnable updateCountdown = new Runnable() {
         @Override
@@ -125,7 +120,7 @@ public class OrdersInProgressFragment extends Fragment {
                 int seconds = Seconds.secondsBetween(orderCreated,DateTime.now()).getSeconds();
                 int minutes = seconds/60;
                 int sec = seconds%60;
-                String secondsString = null;
+                String secondsString;
                 if(sec<10){
                     secondsString = "0" + String.valueOf(sec);
                 }else{
@@ -136,7 +131,6 @@ public class OrdersInProgressFragment extends Fragment {
             countdownHandler.postDelayed(updateCountdown,100);
         }
     };
-
 
     private Runnable periodicUpdateRunnable = new Runnable() {
         @Override
@@ -158,10 +152,18 @@ public class OrdersInProgressFragment extends Fragment {
     private BroadcastReceiver lineItemBroadcastReceiver = new BroadcastReceiver() {
         @Override
         public void onReceive(Context context, Intent intent) {
-            OrderMonitorBroadcaster.registerReceiver(ordersBroadcastReceiver, OrderMonitorData.BroadcastEvent.LINE_ITEM_UPDATE);
-            periodicUpdateHandler.post(periodicUpdateRunnable);
+            OrderMonitorBroadcaster.unregisterReceiver(this);
+            OrderMonitorBroadcaster.registerReceiver(ordersBroadcastReceiver, OrderMonitorData.BroadcastEvent.REFRESH_ORDERS);
+            periodicUpdateHandler.postDelayed(periodicUpdateRunnable,refreshRateMs);
+        }
+    };
 
-            //OrderMonitorBroadcaster.unregisterReceiver(this);
+    private BroadcastReceiver orderMarkedDoneReceiver = new BroadcastReceiver() {
+        @Override
+        public void onReceive(Context context, Intent intent) {
+            OrderMonitorBroadcaster.unregisterReceiver(this);
+            OrderMonitorBroadcaster.registerReceiver(ordersBroadcastReceiver, OrderMonitorData.BroadcastEvent.REFRESH_ORDERS);
+            periodicUpdateHandler.postDelayed(periodicUpdateRunnable,refreshRateMs);
         }
     };
 
@@ -189,7 +191,6 @@ public class OrdersInProgressFragment extends Fragment {
     @Override
     public boolean onOptionsItemSelected(MenuItem item) {
         int itemId = item.getItemId();
-
         if(itemId == R.id.clear_all){
             AlertDialog.Builder builder = new AlertDialog.Builder(getActivity());
             builder.setMessage(getString(R.string.clear_all_alert))
@@ -215,7 +216,6 @@ public class OrdersInProgressFragment extends Fragment {
             builder.create().show();
             return true;
         }
-
         return super.onOptionsItemSelected(item);
     }
 
@@ -298,7 +298,13 @@ public class OrdersInProgressFragment extends Fragment {
         showOrderType = sharedPref.getBoolean(getString(R.string.display_order_type_pref), false);
         showOrigin = sharedPref.getBoolean(getString(R.string.display_device_pref),false);
         showTimer = sharedPref.getBoolean(getString(R.string.order_timer_pref),true);
-        showDoneItems = sharedPref.getBoolean(getString(R.string.show_done_items_key),true);
+
+        Set<String> defset = new HashSet<>(Arrays.asList(getResources().getStringArray(R.array.item_state_vals)));
+        Set<String> orderStatesSet = sharedPref.getStringSet(getString(R.string.item_states_key),defset);
+
+        showOrderedItems = orderStatesSet.contains(getString(R.string.ordered));
+        showReadyItems = orderStatesSet.contains(getString(R.string.ready));
+        showServedItems = orderStatesSet.contains(getString(R.string.served));
 
         actionBar = ((MainActivity) getActivity()).getSupportActionBar();
         actionBar.setDisplayHomeAsUpEnabled(false);
@@ -363,11 +369,13 @@ public class OrdersInProgressFragment extends Fragment {
             titleBgColor = Color.parseColor(titleColor);
         }
 
-        //TODO: apply this to the listview?
-        int bodyBgColor = getResources().getColor(R.color.white);
+        final int bodyBgColor;
+
         if(thisOrder.getDevice()!=null){
             String bodyColor = sp.getString(thisOrder.getDevice().getId(),getString(R.string.white));
             bodyBgColor = Color.parseColor(bodyColor);
+        }else{
+            bodyBgColor = getResources().getColor(R.color.white);
         }
 
         TextView orderTitleText = (TextView) relativeLayout.findViewById(R.id.order_id_text);
@@ -392,17 +400,45 @@ public class OrdersInProgressFragment extends Fragment {
         countdownText.setTextSize(fontSize);
 
         DateTime orderCreated = new DateTime(thisOrder.getCreatedTime());
-        String timeCreatedString = DateTimeFormat.forPattern("hh:mm a").print(orderCreated);
+
+        boolean showTimeTicket = sp.getBoolean(getString(R.string.show_time_stamp_and_ticket_number),true);
+
+        String timeCreatedString = "";
+
+        String orderTitle = "";
+
+        if(thisOrder.getTitle()!=null){
+            orderTitle = thisOrder.getTitle();
+        }
+
+        if(showTimeTicket){
+            if(StringUtils.isNumeric(orderTitle)) {
+                timeCreatedString = "#" + orderTitle + " " + DateTimeFormat.forPattern("hh:mm a").print(orderCreated);
+            }else{
+                timeCreatedString = DateTimeFormat.forPattern("hh:mm a").print(orderCreated);
+            }
+        }
 
         if(showOrderType) {
-            timeCreatedString = timeCreatedString + "\r\n" + label;
+            if(showTimeTicket){
+                timeCreatedString = timeCreatedString + "\r\n";
+            }
+            timeCreatedString = timeCreatedString + label;
         }
 
         if(showOrigin){
-            timeCreatedString = timeCreatedString + "\r\n" + origin;
+            if(showOrderType||showTimeTicket){
+                timeCreatedString = timeCreatedString + "\r\n";
+            }
+            timeCreatedString = timeCreatedString + origin;
         }
 
-        orderTitleText.setText(timeCreatedString);
+        if(!timeCreatedString.equals("")) {
+            orderTitleText.setText(timeCreatedString);
+        }else{
+            orderTitleText.setVisibility(View.GONE);
+        }
+
 
         final List<LineItem> lineItemList = thisOrder.getLineItems();
         List<LineItem> filteredLiList = new ArrayList<>();
@@ -418,9 +454,7 @@ public class OrdersInProgressFragment extends Fragment {
 
         final List<LineItem> displayLiList = sortItemsIntoBins(filteredLiList,thisOrder);
 
-        //TODO: pass body background color to adapter
-
-        final LineItemListAdapter lineItemListAdapter = new LineItemListAdapter(getActivity(),displayLiList,fontSize);
+        final LineItemListAdapter lineItemListAdapter = new LineItemListAdapter(getActivity(),displayLiList,fontSize,bodyBgColor);
 
         lineItemLv.setAdapter(lineItemListAdapter);
 
@@ -440,14 +474,12 @@ public class OrdersInProgressFragment extends Fragment {
 
 
                     float percentOffScreen = (lastLvBottom - lvBottom) / lastLvHeight;
-                    Log.v("percent off", String.valueOf(percentOffScreen));
 
                     if (percentOffScreen > 0.15) {
                         runnableLastPos = runnableLastPos - 1;
                     }
 
                     if (runnableLastPos < displayLiList.size() - 1) {
-
 
                         lineItemListAdapter.updateAdapter(displayLiList.subList(0, runnableLastPos + 1));
 
@@ -476,7 +508,7 @@ public class OrdersInProgressFragment extends Fragment {
                         final ListView overFlowLv = (ListView) overFlowRl.findViewById(R.id.overflow_list_view);
 
                         final List<LineItem> overFlowLiList = displayLiList.subList(runnableLastPos + 1, displayLiList.size());
-                        LineItemListAdapter overFlowAdapter = new LineItemListAdapter(getActivity(), overFlowLiList, fontSize);
+                        LineItemListAdapter overFlowAdapter = new LineItemListAdapter(getActivity(), overFlowLiList, fontSize, bodyBgColor);
                         overFlowLv.setAdapter(overFlowAdapter);
 
                         overFlowLv.setOnItemClickListener(new AdapterView.OnItemClickListener() {
@@ -487,31 +519,48 @@ public class OrdersInProgressFragment extends Fragment {
                                 //unregister the receiver so that refreshed orders aren't shown before they can be updated
                                 OrderMonitorBroadcaster.unregisterReceiver(ordersBroadcastReceiver);
                                 periodicUpdateHandler.removeCallbacks(periodicUpdateRunnable);
+
                                 OrderMonitorBroadcaster.registerReceiver(lineItemBroadcastReceiver, OrderMonitorData.BroadcastEvent.LINE_ITEM_UPDATE);
 
                                 ImageView checkImage = (ImageView) view.findViewById(R.id.item_checked_image);
                                 LineItem clickedLineItem = (LineItem) view.getTag();
 
-                                if (clickedLineItem.getUserData() != null && clickedLineItem.getUserData().equals(getString(R.string.checked))) {
-                                    clickedLineItem.setUserData("");
+                                //if ordered or null, mark ready
+                                if (clickedLineItem.getUserData() == null || clickedLineItem.getUserData().equals(getString(R.string.ordered))) {
+                                    clickedLineItem.setUserData(getString(R.string.ready));
+                                    checkImage.setVisibility(View.VISIBLE);
+                                    checkImage.setImageDrawable(getResources().getDrawable(R.drawable.ic_done_black_24dp));
+                                    orderMonitorData.updateLineItem(thisOrder.getId(), clickedLineItem.getId(), clickedLineItem);
+
+                                    //if ready, mark served
+                                } else if (clickedLineItem.getUserData().equals(getString(R.string.ready))) {
+                                    clickedLineItem.setUserData(getString(R.string.served));
+                                    checkImage.setVisibility(View.VISIBLE);
+                                    checkImage.setImageDrawable(getResources().getDrawable(R.drawable.ic_done_all_black_24dp));
+                                    orderMonitorData.updateLineItem(thisOrder.getId(), clickedLineItem.getId(), clickedLineItem);
+                                } else {
+                                    //if served. mark ordered
+                                    clickedLineItem.setUserData(getString(R.string.ordered));
                                     checkImage.setVisibility(View.INVISIBLE);
                                     orderMonitorData.updateLineItem(thisOrder.getId(), clickedLineItem.getId(), clickedLineItem);
+                                }
 
-                                } else {
-                                    clickedLineItem.setUserData(getString(R.string.checked));
-                                    checkImage.setVisibility(View.VISIBLE);
-                                    orderMonitorData.updateLineItem(thisOrder.getId(), clickedLineItem.getId(), clickedLineItem);
-
-                                    if(!showDoneItems){
-                                        int whereIsOrder = horizLinearLayout.indexOfChild(overFlowLinearLayout);
-                                        removeViewFromHorizLinearLayout(thisOrder.getId());
-                                        addViewToHorizLinearLayout(whereIsOrder,thisOrder.getId());
+                                //if any of these are false, an item may need to be removed form the view, so it needs to be redrawn
+                                if (!(showOrderedItems && showReadyItems && showServedItems)) {
+                                    int whereIsOrder = horizLinearLayout.indexOfChild(overFlowLinearLayout);
+                                    removeViewFromHorizLinearLayout(thisOrder.getId());
+                                    if (hasLineItems(thisOrder)) {
+                                        addViewToHorizLinearLayout(whereIsOrder, thisOrder.getId());
+                                    }else{
+                                        currentOrderHashMap.remove(thisOrder.getId());
+                                        updateOrderCount(currentOrderHashMap.size());
                                     }
                                 }
                             }
 
                         });
-                        addOverFlowViews(overFlowLv, overFlowRl, overFlowLinearLayout, overFlowLiList, 1, thisOrder);
+
+                        addOverFlowViews(overFlowLv, overFlowRl, overFlowLinearLayout, overFlowLiList, 1, thisOrder, bodyBgColor);
                     }
                     vto.removeOnGlobalLayoutListener(this);
                 }
@@ -532,19 +581,36 @@ public class OrdersInProgressFragment extends Fragment {
                 ImageView checkImage = (ImageView) view.findViewById(R.id.item_checked_image);
                 LineItem clickedLineItem = (LineItem) view.getTag();
 
-                if (clickedLineItem.getUserData()!=null&&clickedLineItem.getUserData().equals(getString(R.string.checked))) {
-                    clickedLineItem.setUserData("");
-                    checkImage.setVisibility(View.INVISIBLE);
-                    orderMonitorData.updateLineItem(thisOrder.getId(),clickedLineItem.getId(),clickedLineItem);
-                } else {
-                    clickedLineItem.setUserData(getString(R.string.checked));
+                //if ordered or null, mark ready
+                if (clickedLineItem.getUserData()==null||clickedLineItem.getUserData().equals(getString(R.string.ordered))) {
+                    clickedLineItem.setUserData(getString(R.string.ready));
                     checkImage.setVisibility(View.VISIBLE);
+                    checkImage.setImageDrawable(getResources().getDrawable(R.drawable.ic_done_black_24dp));
                     orderMonitorData.updateLineItem(thisOrder.getId(),clickedLineItem.getId(),clickedLineItem);
 
-                    if(!showDoneItems){
-                        int whereIsOrder = horizLinearLayout.indexOfChild(overFlowLinearLayout);
-                        removeViewFromHorizLinearLayout(thisOrder.getId());
-                        addViewToHorizLinearLayout(whereIsOrder,thisOrder.getId());
+                //if item ready, mark served
+                } else if(clickedLineItem.getUserData().equals(getString(R.string.ready))) {
+                    clickedLineItem.setUserData(getString(R.string.served));
+                    checkImage.setVisibility(View.VISIBLE);
+                    checkImage.setImageDrawable(getResources().getDrawable(R.drawable.ic_done_all_black_24dp));
+                    orderMonitorData.updateLineItem(thisOrder.getId(), clickedLineItem.getId(), clickedLineItem);
+                //if served, mark ordered
+                }else{
+                    clickedLineItem.setUserData(getString(R.string.ordered));
+                    checkImage.setVisibility(View.INVISIBLE);
+                    orderMonitorData.updateLineItem(thisOrder.getId(),clickedLineItem.getId(),clickedLineItem);
+                }
+
+
+                if(!(showOrderedItems&&showReadyItems&&showServedItems)) {
+                    int whereIsOrder = horizLinearLayout.indexOfChild(overFlowLinearLayout);
+                    removeViewFromHorizLinearLayout(thisOrder.getId());
+
+                    if(hasLineItems(thisOrder)) {
+                        addViewToHorizLinearLayout(whereIsOrder, thisOrder.getId());
+                    }else{
+                        currentOrderHashMap.remove(thisOrder.getId());
+                        updateOrderCount(currentOrderHashMap.size());
                     }
                 }
             }
@@ -558,15 +624,17 @@ public class OrdersInProgressFragment extends Fragment {
             @Override
             public void onClick(View v) {
 
-                RelativeLayout parentView = (RelativeLayout) v.getParent();
+                OrderMonitorBroadcaster.unregisterReceiver(ordersBroadcastReceiver);
+                periodicUpdateHandler.removeCallbacks(periodicUpdateRunnable);
+                OrderMonitorBroadcaster.registerReceiver(orderMarkedDoneReceiver, OrderMonitorData.BroadcastEvent.ORDER_DONE);
 
                 orderMonitorData.markDone((String) v.getTag(), thisOrder);
-
-                //TODO: delete view and remove from orderidlist, maybe wait for callback, it may come in again and a view will be added before its marked done...
 
                 horizLinearLayout.removeView(overFlowLinearLayout);
 
                 currentOrderHashMap.remove(thisOrder.getId());
+
+                updateOrderCount(currentOrderHashMap.size());
 
                 buttonList.remove(doneButton);
                 countdownTvList.remove(countdownText);
@@ -575,7 +643,7 @@ public class OrdersInProgressFragment extends Fragment {
 
     }
 
-    private void addOverFlowViews(final ListView listView, final RelativeLayout relativeLayout,final LinearLayout overFlowLinearLayout,final List<LineItem> lineItemList,final int pos, final Order order){
+    private void addOverFlowViews(final ListView listView, final RelativeLayout relativeLayout,final LinearLayout overFlowLinearLayout,final List<LineItem> lineItemList,final int pos, final Order order, final int bodyBgColor){
 
         final ViewTreeObserver vto = listView.getViewTreeObserver();
 
@@ -583,91 +651,107 @@ public class OrdersInProgressFragment extends Fragment {
             @Override
             public void onGlobalLayout() {
 
-                        int runnableLastPos = listView.getLastVisiblePosition();
+                int runnableLastPos = listView.getLastVisiblePosition();
 
                 View lastLv = listView.getChildAt(runnableLastPos);
 
                 int lvTop = listView.getTop();
                 int lvBottom = listView.getBottom();
-                int lastLvBottom = lvTop + lastLv.getTop()+lastLv.getHeight();
+                int lastLvBottom = lvTop + lastLv.getTop() + lastLv.getHeight();
                 float lastLvHeight = lastLv.getHeight();
 
-                float percentOffScreen = (lastLvBottom-lvBottom)/lastLvHeight;
-                if(percentOffScreen>0.10){
-                    runnableLastPos = runnableLastPos-1;
+                float percentOffScreen = (lastLvBottom - lvBottom) / lastLvHeight;
+
+                if (percentOffScreen > 0.10) {
+                    runnableLastPos = runnableLastPos - 1;
                 }
 
-                        if (runnableLastPos < lineItemList.size() - 1) {
+                if (runnableLastPos < lineItemList.size() - 1) {
 
-                            LineItemListAdapter listAdapter = (LineItemListAdapter) listView.getAdapter();
-                            listAdapter.updateAdapter(lineItemList.subList(0,runnableLastPos+1));
+                    LineItemListAdapter listAdapter = (LineItemListAdapter) listView.getAdapter();
+                    listAdapter.updateAdapter(lineItemList.subList(0, runnableLastPos + 1));
 
-                            ViewGroup parent = (ViewGroup) relativeLayout.getParent();
-                            parent.removeView(relativeLayout);
+                    ViewGroup parent = (ViewGroup) relativeLayout.getParent();
+                    parent.removeView(relativeLayout);
 
-                            overFlowLinearLayout.addView(relativeLayout, pos);
+                    overFlowLinearLayout.addView(relativeLayout, pos);
 
-                            LinearLayout.LayoutParams newParams = (LinearLayout.LayoutParams) overFlowLinearLayout.getLayoutParams();
-                            newParams.width = screenWidthDp*(pos+2)/denominatorForWidth;
+                    LinearLayout.LayoutParams newParams = (LinearLayout.LayoutParams) overFlowLinearLayout.getLayoutParams();
+                    newParams.width = screenWidthDp * (pos + 2) / denominatorForWidth;
 
-                            overFlowLinearLayout.setLayoutParams(newParams);
+                    overFlowLinearLayout.setLayoutParams(newParams);
 
-                            LinearLayout.LayoutParams linLayParams = (LinearLayout.LayoutParams) relativeLayout.getLayoutParams();
-                            linLayParams.width = screenWidthDp/denominatorForWidth;
+                    LinearLayout.LayoutParams linLayParams = (LinearLayout.LayoutParams) relativeLayout.getLayoutParams();
+                    linLayParams.width = screenWidthDp / denominatorForWidth;
 
-                            RelativeLayout overFlowRl = new RelativeLayout(getActivity());
+                    RelativeLayout overFlowRl = new RelativeLayout(getActivity());
 
-                            relativeLayout.setLayoutParams(linLayParams);
-                            overFlowRl.setLayoutParams(linLayParams);
+                    relativeLayout.setLayoutParams(linLayParams);
+                    overFlowRl.setLayoutParams(linLayParams);
 
-                            mLayoutInflater.inflate(R.layout.overflow_relative_layout, overFlowRl);
-                            overFlowLinearLayout.addView(overFlowRl,pos+1);
+                    mLayoutInflater.inflate(R.layout.overflow_relative_layout, overFlowRl);
+                    overFlowLinearLayout.addView(overFlowRl, pos + 1);
 
+                    ListView overFlowLv = (ListView) overFlowRl.findViewById(R.id.overflow_list_view);
 
-                            ListView overFlowLv = (ListView) overFlowRl.findViewById(R.id.overflow_list_view);
+                    final List<LineItem> overFlowLiList = lineItemList.subList(runnableLastPos + 1, lineItemList.size());
+                    LineItemListAdapter overFlowAdapter = new LineItemListAdapter(getActivity(), overFlowLiList, fontSize, bodyBgColor);
+                    overFlowLv.setAdapter(overFlowAdapter);
 
-                            final List<LineItem> overFlowLiList = lineItemList.subList(runnableLastPos+1, lineItemList.size());
-                            LineItemListAdapter overFlowAdapter = new LineItemListAdapter(getActivity(), overFlowLiList, fontSize);
-                            overFlowLv.setAdapter(overFlowAdapter);
+                    overFlowLv.setOnItemClickListener(new AdapterView.OnItemClickListener() {
 
-                            addOverFlowViews(overFlowLv,overFlowRl,overFlowLinearLayout,overFlowLiList,pos+1,order);
+                        @Override
+                        public void onItemClick(AdapterView<?> adapterView, View view, int i, long l) {
 
+                            //unregister the receiver so that refreshed orders aren't shown before they can be updated
+                            OrderMonitorBroadcaster.unregisterReceiver(ordersBroadcastReceiver);
+                            periodicUpdateHandler.removeCallbacks(periodicUpdateRunnable);
+                            OrderMonitorBroadcaster.registerReceiver(lineItemBroadcastReceiver, OrderMonitorData.BroadcastEvent.LINE_ITEM_UPDATE);
+
+                            ImageView checkImage = (ImageView) view.findViewById(R.id.item_checked_image);
+                            LineItem clickedLineItem = (LineItem) view.getTag();
+
+                            //if state null or ordered, mark ready
+                            if (clickedLineItem.getUserData() == null || clickedLineItem.getUserData().equals(getString(R.string.ordered))) {
+                                clickedLineItem.setUserData(getString(R.string.ready));
+                                checkImage.setVisibility(View.VISIBLE);
+                                checkImage.setImageDrawable(getResources().getDrawable(R.drawable.ic_done_black_24dp));
+                                orderMonitorData.updateLineItem(order.getId(), clickedLineItem.getId(), clickedLineItem);
+                                //if item ready, mark served
+                            } else if (clickedLineItem.getUserData().equals(getString(R.string.ready))) {
+                                clickedLineItem.setUserData(getString(R.string.served));
+                                checkImage.setVisibility(View.VISIBLE);
+                                checkImage.setImageDrawable(getResources().getDrawable(R.drawable.ic_done_all_black_24dp));
+                                orderMonitorData.updateLineItem(order.getId(), clickedLineItem.getId(), clickedLineItem);
+                            }
+                            //if item served, mark ordered
+                            else {
+                                clickedLineItem.setUserData(getString(R.string.ordered));
+                                checkImage.setVisibility(View.INVISIBLE);
+                                orderMonitorData.updateLineItem(order.getId(), clickedLineItem.getId(), clickedLineItem);
+                            }
+
+                            if (!(showOrderedItems && showReadyItems && showServedItems)) {
+                                int whereIsOrder = horizLinearLayout.indexOfChild(overFlowLinearLayout);
+                                removeViewFromHorizLinearLayout(order.getId());
+
+                                if (hasLineItems(order)) {
+                                    addViewToHorizLinearLayout(whereIsOrder, order.getId());
+                                }else{
+                                    currentOrderHashMap.remove(order.getId());
+                                    updateOrderCount(currentOrderHashMap.size());
+                                }
+                            }
                         }
-                        vto.removeOnGlobalLayoutListener(this);
-                    }
-                });
+                    });
 
-
-            listView.setOnItemClickListener(new AdapterView.OnItemClickListener() {
-
-                @Override
-                public void onItemClick(AdapterView<?> adapterView, View view, int i, long l) {
-
-                    //unregister the receiver so that refreshed orders aren't shown before they can be updated
-                    OrderMonitorBroadcaster.unregisterReceiver(ordersBroadcastReceiver);
-                    periodicUpdateHandler.removeCallbacks(periodicUpdateRunnable);
-                    OrderMonitorBroadcaster.registerReceiver(lineItemBroadcastReceiver, OrderMonitorData.BroadcastEvent.LINE_ITEM_UPDATE);
-
-                    ImageView checkImage = (ImageView) view.findViewById(R.id.item_checked_image);
-                    LineItem clickedLineItem = (LineItem) view.getTag();
-
-                    if (clickedLineItem.getUserData() != null && clickedLineItem.getUserData().equals(getString(R.string.checked))) {
-                        clickedLineItem.setUserData("");
-                        checkImage.setVisibility(View.INVISIBLE);
-                        orderMonitorData.updateLineItem(order.getId(), clickedLineItem.getId(), clickedLineItem);
-                    } else {
-                        clickedLineItem.setUserData(getString(R.string.checked));
-                        checkImage.setVisibility(View.VISIBLE);
-                        orderMonitorData.updateLineItem(order.getId(), clickedLineItem.getId(), clickedLineItem);
-                        if(!showDoneItems){
-                            int whereIsOrder = horizLinearLayout.indexOfChild(overFlowLinearLayout);
-                            removeViewFromHorizLinearLayout(order.getId());
-                            addViewToHorizLinearLayout(whereIsOrder,order.getId());
-                        }
-                    }
+                    addOverFlowViews(overFlowLv, overFlowRl, overFlowLinearLayout, overFlowLiList, pos + 1, order, bodyBgColor);
 
                 }
-            });
+                vto.removeOnGlobalLayoutListener(this);
+            }
+        });
+
     }
 
 
@@ -888,6 +972,20 @@ public class OrdersInProgressFragment extends Fragment {
         }
 
         return displayList;
+    }
+
+    private boolean hasLineItems(Order order){
+
+        boolean hasLineItems=false;
+
+        if(order.getLineItems()!=null){
+            for (LineItem li : order.getLineItems()) {
+                if (orderMonitorData.showLineItem(li.getName(), li)) {
+                    hasLineItems = true;
+                }
+            }
+        }
+        return hasLineItems;
     }
 
 }

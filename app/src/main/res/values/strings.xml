@@ -1,5 +1,5 @@
 <resources>
-    <string name="app_name">Order Display</string>
+    <string name="app_name">Order Display Premium</string>
 
     <string name="hello_world">Hello world!</string>
     <string name="action_settings">Settings</string>
@@ -171,7 +171,7 @@
 
     <string name = "overflow_pref_title">Overflow Items</string>
 
-    <string name = "show_done_items_key">show_done_items_key</string>
+    <string name = "item_states_key">item_states_key</string>
 
     <string name = "order_width_key">order_width_key</string>
 
@@ -197,5 +197,14 @@
     <string name = "entry5">5 Hrs</string>
     <string name = "entry5.5">5 Hrs 30 Mins</string>
     <string name = "entry6">6 Hrs</string>
+
+    <string name = "show_time_stamp_and_ticket_number">time_stamp_and_ticket_number</string>
+    <string name = "show_time_stamp_and_ticket_number_title">Show ticket number and time stamp?</string>
+
+    <string name = "ordered">Ordered</string>
+    <string name = "ready">Ready</string>
+    <string name = "served">Served</string>
+
+    <string name = "done">Done</string>
 
 </resources>

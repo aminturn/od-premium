@@ -329,14 +329,21 @@ public class OrderMonitorData {
             SharedPreferences sp = PreferenceManager.getDefaultSharedPreferences(mContext);
             String[] defStrings = new String[1];
             Set<String> defset = new HashSet<>(Arrays.asList(defStrings));
-
             Set<String> tagsSelected = sp.getStringSet(mContext.getString(R.string.item_tag_pref), defset);
-            boolean showDoneLineItems = sp.getBoolean(mContext.getString(R.string.show_done_items_key),true);
 
-            if(!showDoneLineItems&&lineItem.getUserData()!=null){
-                if(lineItem.getUserData().equals(mContext.getString(R.string.checked))){
-                    return false;
-                }
+            Set<String> defStateSet = new HashSet<>(Arrays.asList(mContext.getResources().getStringArray(R.array.item_state_vals)));
+            Set<String> orderStateSet = sp.getStringSet(mContext.getString(R.string.item_states_key),defStateSet);
+
+            String orderState;
+
+            if(lineItem.getUserData()!=null){
+                orderState = lineItem.getUserData();
+            }else{
+                orderState = mContext.getString(R.string.ordered);
+            }
+
+            if(!orderStateSet.contains(orderState)){
+                return false;
             }
 
             for (Tag t : tagList) {
@@ -361,12 +368,15 @@ public class OrderMonitorData {
         CloverService.getService().updateOrder(mId, token, orderId, updateOrder, new UpdateOrder.UpdateOrderCallback() {
             @Override
             public void onUpdateOrder(Order order) {
+
+                OrderMonitorBroadcaster.sendBroadcast(BroadcastEvent.ORDER_DONE);
                 Log.v("order updated", "order updated");
             }
 
             @Override
             public void onFailUpdateOrder(com.tru.clover.api.client.error.Error error) {
                 Log.v("failed to update order", error.getMessage());
+                OrderMonitorBroadcaster.sendBroadcast(BroadcastEvent.ORDER_DONE);
             }
         });
     }
@@ -378,11 +388,15 @@ public class OrderMonitorData {
         CloverService.getService().updateOrder(mId, token, orderId, updateOrder, new UpdateOrder.UpdateOrderCallback() {
             @Override
             public void onUpdateOrder(Order order) {
+
+                OrderMonitorBroadcaster.sendBroadcast(BroadcastEvent.ORDER_UNDONE);
                 Log.v("order updated", "order updated");
             }
 
             @Override
             public void onFailUpdateOrder(com.tru.clover.api.client.error.Error error) {
+
+                OrderMonitorBroadcaster.sendBroadcast(BroadcastEvent.ORDER_UNDONE);
                 Log.v("failed to update order", error.getMessage());
             }
         });
@@ -424,6 +438,8 @@ public class OrderMonitorData {
 
             for(Order order:allOrders) {
 
+
+                //TODO: use this code to determine if order still has line items once an item is bumped
                 hasLineItems=false;
 
                 if(order.getLineItems()!=null){
@@ -490,11 +506,15 @@ public class OrderMonitorData {
 
         REFRESH_ORDERS,
         REFRESH_DEVICES_AND_ORDER_TYPES,
-        LINE_ITEM_UPDATE;
+        LINE_ITEM_UPDATE,
+        ORDER_DONE,
+        ORDER_UNDONE;
 
         public static final String REFRESH_ORDERS_VALUE = "REFRESH_ORDERS";
         public static final String REFRESH_DEVS_AND_ORDER_TYPES_VALUE = "REFRESH_DEVICES_AND_ORDER_TYPES";
         public static final String LINE_ITEM_UPDATE_VALUE = "LINE_ITEM_UPDATE";
+        public static final String ORDER_DONE_VALUE = "ORDER_DONE";
+        public static final String ORDER_UNDONE_VALUE = "ORDER_UNDONE";
 
     }
 
