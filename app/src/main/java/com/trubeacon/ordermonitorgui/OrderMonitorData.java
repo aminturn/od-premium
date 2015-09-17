@@ -58,6 +58,7 @@ public class OrderMonitorData {
     private static boolean devicesUpdated;
     private static boolean orderTypesUpdated;
     private static AppBillingInfo.Status billingStatus;
+    private static String tierId;
 
 
     //75314KYGAMC4P
@@ -85,6 +86,7 @@ public class OrderMonitorData {
         SharedPreferences sp = PreferenceManager.getDefaultSharedPreferences(mContext);
         mId = sp.getString(mContext.getString(R.string.merchant_id_key),"");
         token = sp.getString(mContext.getString(R.string.saved_token_key),"");
+        tierId = sp.getString(mContext.getString(R.string.tier_id_key),mContext.getString(R.string.advanced_tier_id));
         String statusString = sp.getString(mContext.getString(R.string.billing_status),AppBillingInfo.Status.ACTIVE.toString());
         billingStatus = AppBillingInfo.Status.fromString(statusString);
         return orderMonitorData;
@@ -151,11 +153,13 @@ public class OrderMonitorData {
             public void onGetBillingInfo(AppBillingInfo appBillingInfo) {
 
                 Log.v("app label", appBillingInfo.getAppSubscription().getLabel());
-                Log.v("app id",appBillingInfo.getAppSubscription().getId());
+                Log.v("app id", appBillingInfo.getAppSubscription().getId());
 
+                tierId = appBillingInfo.getAppSubscription().getId();
                 billingStatus = appBillingInfo.getStatus();
                 SharedPreferences sp = PreferenceManager.getDefaultSharedPreferences(mContext);
                 sp.edit().putString(mContext.getString(R.string.billing_status), billingStatus.toString()).apply();
+                sp.edit().putString(mContext.getString(R.string.tier_id_key), tierId).apply();
                 Log.v("status", billingStatus.toString());
             }
 
@@ -253,7 +257,7 @@ public class OrderMonitorData {
                 sp.edit().putLong(mContext.getString(R.string.last_billing_check),now.getMillis()).apply();
             }
 
-            if (billingStatus.equals(AppBillingInfo.Status.ACTIVE)) {
+            if (billingStatus.equals(AppBillingInfo.Status.ACTIVE)&&tierId.equals(mContext.getString(R.string.advanced_tier_id))) {
                 // fetch all orders from the last 6 months
                 CloverService.getService().getOrders(mId, token, new GetOrders.GetOrdersCallback() {
 
@@ -282,7 +286,12 @@ public class OrderMonitorData {
                         Filter.filter("createdTime", Filter.Comparator.GREATER_THAN, start.getMillis()),
                         Filter.filter("createdTime", Filter.Comparator.LESS_THAN, stop.getMillis()));
             }else {
-                Toast.makeText(mContext, "Please check your billing status", Toast.LENGTH_LONG).show();
+                if(tierId.equals(mContext.getString(R.string.advanced_tier_id))){
+                    Toast.makeText(mContext, "Please check your billing status", Toast.LENGTH_LONG).show();
+                }else{
+                    Toast.makeText(mContext, "Please select the premium subscription from the Clover App Market to use this app", Toast.LENGTH_LONG).show();
+                }
+
                 progressOrdersList.clear();
                 doneOrdersList.clear();
                 OrderMonitorBroadcaster.sendBroadcast(BroadcastEvent.REFRESH_ORDERS);
@@ -439,8 +448,6 @@ public class OrderMonitorData {
 
             for(Order order:allOrders) {
 
-
-                //TODO: use this code to determine if order still has line items once an item is bumped
                 hasLineItems=false;
 
                 if(order.getLineItems()!=null){

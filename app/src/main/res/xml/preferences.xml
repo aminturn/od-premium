@@ -37,6 +37,14 @@
             android:entryValues="@array/font_pref_values_array"
             android:defaultValue="@string/str20"/>
 
+        <MultiSelectListPreference
+            android:key = "@string/item_states_key"
+            android:title = "Item States"
+            android:summary = "Choose the state of items to be shown on this display (Ordered, Ready, Done)"
+            android:entries="@array/item_state_entries"
+            android:entryValues="@array/item_state_vals"
+            android:defaultValue="@array/item_state_vals"/>
+
         <CheckBoxPreference
             android:key = "@string/overflow_pref_key"
             android:title = "@string/overflow_pref_title"
@@ -72,15 +80,6 @@
         <CheckBoxPreference
             android:key = "@string/after_paid_pref"
             android:title = "@string/after_paid_title"/>
-
-
-        <MultiSelectListPreference
-            android:key = "@string/item_states_key"
-            android:title = "Item States"
-            android:summary = "Choose the state of items to be shown on this display (Ordered, Ready, Done)"
-            android:entries="@array/item_state_entries"
-            android:entryValues="@array/item_state_vals"
-            android:defaultValue="@array/item_state_vals"/>
 
     </PreferenceCategory>
 
