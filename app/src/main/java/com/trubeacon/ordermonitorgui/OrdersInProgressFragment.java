@@ -355,6 +355,10 @@ public class OrdersInProgressFragment extends Fragment {
             origin = orderMonitorData.getDeviceNamefromId(thisOrder.getDevice().getId());
         }
 
+
+        Log.v("client created time", String.valueOf(thisOrder.getClientCreatedTime()));
+        Log.v("order created time", String.valueOf(thisOrder.getCreatedTime()));
+
         final LinearLayout overFlowLinearLayout= new LinearLayout(getActivity());
         overFlowLinearLayout.setLayoutParams(linearLayoutParams);
 
