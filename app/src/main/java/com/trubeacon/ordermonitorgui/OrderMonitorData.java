@@ -242,7 +242,7 @@ public class OrderMonitorData {
         int ageOfOrdersMinutes = (int) (ageOfOrdersHours*60);
 
         DateTime start = DateTime.now().minusMinutes(ageOfOrdersMinutes);
-        DateTime stop = DateTime.now();
+        DateTime stop = DateTime.now().plusMinutes(10);
 
         if(mId.equals("")||token.equals("")){
             Toast.makeText(OrderMonitorGUI.getAppContext(), "Please connect to your Clover account from the Settings menu", Toast.LENGTH_LONG).show();
