@@ -148,7 +148,7 @@ public class OrdersInProgressFragment extends Fragment {
             progressOrdersList = orderMonitorData.getProgressOrdersList();
             updateOrdersView();
             updateOrderCount(progressOrdersList.size());
-            periodicUpdateHandler.postDelayed(periodicUpdateRunnable,refreshRateMs);
+            periodicUpdateHandler.postDelayed(periodicUpdateRunnable, refreshRateMs);
         }
     };
 
@@ -166,7 +166,7 @@ public class OrdersInProgressFragment extends Fragment {
         public void onReceive(Context context, Intent intent) {
             OrderMonitorBroadcaster.unregisterReceiver(this);
             OrderMonitorBroadcaster.registerReceiver(ordersBroadcastReceiver, OrderMonitorData.BroadcastEvent.REFRESH_ORDERS);
-            periodicUpdateHandler.postDelayed(periodicUpdateRunnable,refreshRateMs);
+            periodicUpdateHandler.postDelayed(periodicUpdateRunnable, refreshRateMs);
         }
     };
 
@@ -744,7 +744,7 @@ public class OrdersInProgressFragment extends Fragment {
 
                                 if (hasLineItems(order)) {
                                     addViewToHorizLinearLayout(whereIsOrder, order.getId());
-                                }else{
+                                } else {
                                     currentOrderHashMap.remove(order.getId());
                                     updateOrderCount(currentOrderHashMap.size());
                                 }
