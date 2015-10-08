@@ -61,11 +61,19 @@ public class LineItemListAdapter extends BaseAdapter {
 
     @Override
     public boolean isEnabled(int position) {
-        if(lineItemList.get(position).getId().equals(mContext.getString(R.string.tag_line_item))||lineItemList.get(position).getId().equals(mContext.getString(R.string.modifier))){
-            return false;
+
+        if(position<lineItemList.size()) {
+
+            if (lineItemList.get(position).getId().equals(mContext.getString(R.string.tag_line_item)) || lineItemList.get(position).getId().equals(mContext.getString(R.string.modifier))) {
+                return false;
+            } else {
+                return true;
+            }
         }else{
+            Log.v("lineitemlistadapter", "index out of bounds");
             return true;
         }
+
     }
 
     @Override
