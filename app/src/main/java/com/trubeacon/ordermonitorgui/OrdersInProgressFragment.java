@@ -112,6 +112,7 @@ public class OrdersInProgressFragment extends Fragment {
 
     private List<TextView> countdownTvList = new ArrayList<>();
 
+    //**********************************************************************************************
     private Runnable updateCountdown = new Runnable() {
         @Override
         public void run() {
@@ -135,6 +136,7 @@ public class OrdersInProgressFragment extends Fragment {
         }
     };
 
+    //**********************************************************************************************
     private Runnable periodicUpdateRunnable = new Runnable() {
         @Override
         public void run() {
@@ -142,6 +144,7 @@ public class OrdersInProgressFragment extends Fragment {
         }
     };
 
+    //**********************************************************************************************
     private BroadcastReceiver ordersBroadcastReceiver = new BroadcastReceiver() {
         @Override
         public void onReceive(Context context, Intent intent) {
@@ -152,6 +155,7 @@ public class OrdersInProgressFragment extends Fragment {
         }
     };
 
+    //**********************************************************************************************
     private BroadcastReceiver lineItemBroadcastReceiver = new BroadcastReceiver() {
         @Override
         public void onReceive(Context context, Intent intent) {
@@ -161,6 +165,7 @@ public class OrdersInProgressFragment extends Fragment {
         }
     };
 
+    //**********************************************************************************************
     private BroadcastReceiver orderMarkedDoneReceiver = new BroadcastReceiver() {
         @Override
         public void onReceive(Context context, Intent intent) {
@@ -170,6 +175,7 @@ public class OrdersInProgressFragment extends Fragment {
         }
     };
 
+    //**********************************************************************************************
     @Override
     public void onResume() {
         super.onResume();
@@ -178,6 +184,7 @@ public class OrdersInProgressFragment extends Fragment {
         OrderMonitorBroadcaster.registerReceiver(ordersBroadcastReceiver, OrderMonitorData.BroadcastEvent.REFRESH_ORDERS);
     }
 
+    //**********************************************************************************************
     @Override
     public void onPause() {
         super.onPause();
@@ -186,11 +193,13 @@ public class OrdersInProgressFragment extends Fragment {
         OrderMonitorBroadcaster.unregisterReceiver(ordersBroadcastReceiver);
     }
 
+    //**********************************************************************************************
     @Override
     public void onCreateOptionsMenu(Menu menu, MenuInflater inflater) {
         inflater.inflate(R.menu.progress_menu, menu);
     }
 
+    //**********************************************************************************************
     @Override
     public boolean onOptionsItemSelected(MenuItem item) {
         int itemId = item.getItemId();
@@ -222,12 +231,14 @@ public class OrdersInProgressFragment extends Fragment {
         return super.onOptionsItemSelected(item);
     }
 
+    //**********************************************************************************************
     @Override
     public void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setHasOptionsMenu(true);
     }
 
+    //**********************************************************************************************
     @Nullable
     @Override
     public View onCreateView(LayoutInflater inflater, ViewGroup container, Bundle savedInstanceState) {
@@ -315,6 +326,7 @@ public class OrdersInProgressFragment extends Fragment {
         return scrollAndClearBtnLinLay;
     }
 
+    //**********************************************************************************************
     private void updateOrderCount(int count){
         String titleStr = "";
 
@@ -332,6 +344,7 @@ public class OrdersInProgressFragment extends Fragment {
     }
 
 
+    //**********************************************************************************************
     private void addViewToHorizLinearLayout(int i,String orderId){
 
         final LinearLayout.LayoutParams linearLayoutParams = new LinearLayout.LayoutParams(
@@ -650,6 +663,7 @@ public class OrdersInProgressFragment extends Fragment {
 
     }
 
+    //**********************************************************************************************
     private void addOverFlowViews(final ListView listView, final RelativeLayout relativeLayout,final LinearLayout overFlowLinearLayout,final List<LineItem> lineItemList,final int pos, final Order order, final int bodyBgColor){
 
         final ViewTreeObserver vto = listView.getViewTreeObserver();
@@ -762,11 +776,13 @@ public class OrdersInProgressFragment extends Fragment {
     }
 
 
+    //**********************************************************************************************
     private void removeViewFromHorizLinearLayout(String orderId){
         LinearLayout linearLayout = (LinearLayout) horizLinearLayout.findViewWithTag(orderId);
         horizLinearLayout.removeView(linearLayout);
     }
 
+    //**********************************************************************************************
     private int indexToDrawView(String orderId){
 
         List<Order> orderList = new ArrayList<>();
@@ -798,6 +814,7 @@ public class OrdersInProgressFragment extends Fragment {
         return -1;
     }
 
+    //**********************************************************************************************
     private boolean orderModified(Order localOrder, Order pulledOrder){
 
         List<LineItem> localLineItems = localOrder.getLineItems();
@@ -856,6 +873,7 @@ public class OrdersInProgressFragment extends Fragment {
     }
 
 
+    //**********************************************************************************************
     private void updateOrdersView() {
 
         Order order;
@@ -886,13 +904,9 @@ public class OrdersInProgressFragment extends Fragment {
                     int index = indexToDrawView(order.getId());
                     currentOrderHashMap.put(order.getId(),order);
                     //TODO:get scroll position
-                    int scrollPos = scrollView.getScrollX();
-                    Log.v(String.valueOf(scrollPos),"scroll pos");
                     addViewToHorizLinearLayout(index, order.getId());
                     //TODO: reset scroll position, maybe check if its in bounds?
-
                     //TODO: wait to do this until after the screen has been drawn
-                    scrollView.setScrollX(scrollPos+100);
                 }
             }
         }
@@ -908,6 +922,7 @@ public class OrdersInProgressFragment extends Fragment {
         }
     }
 
+    //**********************************************************************************************
     private List<LineItem> sortItemsIntoBins(List<LineItem> lineItemList, Order order){
 
         binTreeMap.clear();
@@ -991,6 +1006,7 @@ public class OrdersInProgressFragment extends Fragment {
         return displayList;
     }
 
+    //**********************************************************************************************
     private boolean hasLineItems(Order order){
 
         boolean hasLineItems=false;

@@ -78,6 +78,7 @@ public class OrderMonitorData {
 
     private static int billingSeconds = 30;
 
+    //**********************************************************************************************
     public static OrderMonitorData getOrderMonitorData(){
         if(orderMonitorData==null){
             orderMonitorData = new OrderMonitorData();
@@ -92,51 +93,62 @@ public class OrderMonitorData {
         return orderMonitorData;
     }
 
+    //**********************************************************************************************
     public List<Order> getDoneOrdersList(){
         return doneOrdersList;
     }
 
+    //**********************************************************************************************
     public static List<Order> getProgressOrdersList(){
         return new ArrayList<>(progressOrdersList);
     }
 
+    //**********************************************************************************************
     public static List<Device> getDeviceList() {
         return deviceList;
     }
 
+    //**********************************************************************************************
     public static List<OrderType> getOrderTypesList() {
         return orderTypesList;
     }
 
+    //**********************************************************************************************
     public static void addDevicetoHash(String id, String name){
         //id is key, name is value
         deviceHashMap.put(id,name);
     }
 
+    //**********************************************************************************************
     public static String getDeviceNamefromId(String id){
         return (String) deviceHashMap.get(id);
     }
 
+    //**********************************************************************************************
     public static List<Tag> getTagList() {
         return tagList;
     }
 
+    //**********************************************************************************************
     public static void setTagList(List<Tag> tagList) {
         OrderMonitorData.tagList = new ArrayList<>(tagList);
     }
 
+    //**********************************************************************************************
     public static void setmId(String mId) {
         SharedPreferences sp = PreferenceManager.getDefaultSharedPreferences(mContext);
         sp.edit().putString(mContext.getString(R.string.merchant_id_key),mId).apply();
         OrderMonitorData.mId = mId;
     }
 
+    //**********************************************************************************************
     public static void setToken(String token) {
         SharedPreferences sp = PreferenceManager.getDefaultSharedPreferences(mContext);
         sp.edit().putString(mContext.getString(R.string.saved_token_key),token).apply();
         OrderMonitorData.token = token;
     }
 
+    //**********************************************************************************************
     public void refreshDevicesOrderTypesTags(){
         tagsUpdated=false;
         devicesUpdated=false;
@@ -146,6 +158,7 @@ public class OrderMonitorData {
         refreshTags();
     }
 
+    //**********************************************************************************************
     private void refreshBillingInfo(){
 
         CloverService.getService().getBillingInfo(mId, token, appId, new GetBillingInfo.GetBillingInfoCallback() {
@@ -171,6 +184,7 @@ public class OrderMonitorData {
     }
 
 
+    //**********************************************************************************************
     public void refreshDevices(){
         CloverService.getService().getDevices(mId, token, new GetDevices.GetDevicesCallback() {
             @Override
@@ -188,6 +202,7 @@ public class OrderMonitorData {
         });
     }
 
+    //**********************************************************************************************
     public void refreshOrderTypes(){
 
         CloverService.getService().getOrderTypes(mId, token, new GetOrderTypes.GetOrderTypesCallback() {
@@ -207,6 +222,7 @@ public class OrderMonitorData {
 
     }
 
+    //**********************************************************************************************
     public void refreshTags(){
 
         CloverService.getService().getTags(mId, token, new GetTags.GetTagsCallback() {
@@ -228,12 +244,14 @@ public class OrderMonitorData {
 
     }
 
+    //**********************************************************************************************
     private void broadcastDevicesOrderTypesTags(){
         if(devicesUpdated&&tagsUpdated&&orderTypesUpdated) {
             OrderMonitorBroadcaster.sendBroadcast(BroadcastEvent.REFRESH_DEVICES_AND_ORDER_TYPES);
         }
     }
 
+    //**********************************************************************************************
     public void refreshOrders(){
 
         SharedPreferences sp = PreferenceManager.getDefaultSharedPreferences(mContext);
@@ -303,6 +321,7 @@ public class OrderMonitorData {
         }
     }
 
+    //**********************************************************************************************
     public void markAllOrdersDone(){
         for(Order o:progressOrdersList){
             o.setNote(ORDER_DONE_KEY);
@@ -310,6 +329,7 @@ public class OrderMonitorData {
         }
     }
 
+    //**********************************************************************************************
     public int lineItemColor(String itemName){
 
         //key to preference is label name
@@ -336,6 +356,7 @@ public class OrderMonitorData {
     }
 
 
+    //**********************************************************************************************
     public boolean showLineItem(String itemName, LineItem lineItem){
 
         boolean showLineItem = true;
@@ -374,6 +395,7 @@ public class OrderMonitorData {
         return showLineItem;
     }
 
+    //**********************************************************************************************
     //TODO: add a try catch here...not having the permissions caused the app to crash
     public void markDone(String orderId,Order updateOrder){
 
@@ -395,6 +417,7 @@ public class OrderMonitorData {
         });
     }
 
+    //**********************************************************************************************
     public void markUnDone(String orderId,Order updateOrder){
 
         updateOrder.setNote("");
@@ -416,6 +439,7 @@ public class OrderMonitorData {
         });
     }
 
+    //**********************************************************************************************
     public void updateLineItem(String orderId, String lineItemId, LineItem lineItemUpdate){
 
         CloverService.getService().updateOrderLineItem(mId, token, orderId, lineItemId, lineItemUpdate, new UpdateOrderLineItem.UpdateOrderLineItemCallback() {
@@ -432,6 +456,7 @@ public class OrderMonitorData {
         });
     }
 
+    //**********************************************************************************************
     private void updateProgressOrdersList(List<Order> allOrders){
 
         if(allOrders!=null) {
@@ -514,6 +539,7 @@ public class OrderMonitorData {
     }
 
 
+    //**********************************************************************************************
     public enum BroadcastEvent{
 
         REFRESH_ORDERS,
