@@ -924,6 +924,7 @@ public class OrdersInProgressFragment extends Fragment {
 
     //**********************************************************************************************
     private List<LineItem> sortItemsIntoBins(List<LineItem> lineItemList, Order order){
+        //TODO: sort items by created time
 
         binTreeMap.clear();
 
@@ -980,6 +981,16 @@ public class OrdersInProgressFragment extends Fragment {
             }
 
             List<LineItem> correspBinList = binTreeMap.get(key);
+            Collections.sort(correspBinList, new Comparator<LineItem>() {
+                @Override
+                public int compare(LineItem li1, LineItem li2) {
+                    if(li1.getCreatedTime()<li2.getCreatedTime()){
+                        return -1;
+                    }
+                    return 1;
+                }
+            });
+
             for(LineItem lineItem:correspBinList){
                 displayList.add(lineItem);
                 List<Modification> modList = lineItem.getModifications();

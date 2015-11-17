@@ -459,6 +459,7 @@ public class OrderMonitorData {
     //**********************************************************************************************
     private void updateProgressOrdersList(List<Order> allOrders){
 
+        //TODO: sort items
         if(allOrders!=null) {
 
             boolean hasLineItems;
