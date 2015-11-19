@@ -31,6 +31,8 @@ public class AndroidRESTResultReceiver extends ResultReceiver {
 			if (response != null && callback != null) {
 				callback.onResponse(response);
 			}
+		}else {
+			callback.onResponse(new RESTHttpResponse(resultCode, null, null));
 		}
 
 	}
