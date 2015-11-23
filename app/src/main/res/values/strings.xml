@@ -212,4 +212,6 @@
     <string name = "advanced_tier_id">V8WZJX9RT4VMW</string>
     <string name = "tier_id_key">tier_id_key</string>
 
+    <string name = "no_device_string">no_device_string</string>
+
 </resources>

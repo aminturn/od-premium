@@ -488,20 +488,27 @@ public class OrderMonitorData {
                     }
                 }
 
+                String deviceId;
+                if(order.getDevice()==null){
+                    deviceId =mContext.getString(R.string.no_device_string);
+                }else{
+                    deviceId = order.getDevice().getId();
+                }
+
                if(onlyShowPaid) {
                    if (order.getOrderType() == null) {
-                       if (devicesSelected.contains(order.getDevice().getId()) && hasLineItems&&order.getState().equals(mContext.getString(R.string.locked))) {
+                       if ((devicesSelected.contains(deviceId)||deviceId.equals(mContext.getString(R.string.no_device_string))) && hasLineItems&&order.getState().equals(mContext.getString(R.string.locked))) {
                            filteredList.add(order);
                        }
-                   } else if (orderTypesSelected.contains(order.getOrderType().getLabel()) && devicesSelected.contains(order.getDevice().getId()) && hasLineItems&&order.getState().equals(mContext.getString(R.string.locked))) {
+                   } else if (orderTypesSelected.contains(order.getOrderType().getLabel()) && (devicesSelected.contains(deviceId)||deviceId.equals(mContext.getString(R.string.no_device_string))) && hasLineItems&&order.getState().equals(mContext.getString(R.string.locked))) {
                        filteredList.add(order);
                    }
                }else{
                    if (order.getOrderType() == null) {
-                       if (devicesSelected.contains(order.getDevice().getId()) && hasLineItems) {
+                       if ((devicesSelected.contains(deviceId)||deviceId.equals(mContext.getString(R.string.no_device_string))) && hasLineItems) {
                            filteredList.add(order);
                        }
-                   } else if (orderTypesSelected.contains(order.getOrderType().getLabel()) && devicesSelected.contains(order.getDevice().getId()) && hasLineItems) {
+                   } else if (orderTypesSelected.contains(order.getOrderType().getLabel()) && (devicesSelected.contains(deviceId)||deviceId.equals(mContext.getString(R.string.no_device_string))) && hasLineItems) {
                        filteredList.add(order);
                    }
                }
