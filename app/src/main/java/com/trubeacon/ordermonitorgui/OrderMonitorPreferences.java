@@ -5,7 +5,7 @@ import android.content.Context;
 import android.content.Intent;
 import android.content.SharedPreferences;
 import android.os.Bundle;
-import android.preference.CheckBoxPreference;
+
 import android.preference.ListPreference;
 import android.preference.MultiSelectListPreference;
 import android.preference.Preference;
@@ -20,11 +20,10 @@ import android.view.MenuItem;
 import android.view.View;
 import android.view.ViewGroup;
 
-import com.tru.clover.api.inventory.Tag;
-import com.tru.clover.api.merchant.Device;
-import com.tru.clover.api.merchant.Devices;
-import com.tru.clover.api.order.Order;
-import com.tru.clover.api.order.OrderType;
+
+import com.trubeacon.cloverandroidapi.inventory.Tag;
+import com.trubeacon.cloverandroidapi.merchant.Device;
+import com.trubeacon.cloverandroidapi.order.OrderType;
 
 import java.util.Arrays;
 import java.util.HashSet;

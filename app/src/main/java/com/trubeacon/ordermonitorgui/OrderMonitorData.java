@@ -7,36 +7,34 @@ import android.preference.PreferenceManager;
 import android.util.Log;
 import android.widget.Toast;
 
-import com.tru.clover.api.app.AppBillingInfo;
-import com.tru.clover.api.app.service.GetBillingInfo;
-import com.tru.clover.api.client.error.*;
-import com.tru.clover.api.client.error.Error;
-import com.tru.clover.api.client.filter.Filter;
-import com.tru.clover.api.common.WrappedList;
-import com.tru.clover.api.inventory.Item;
-import com.tru.clover.api.inventory.Tag;
-import com.tru.clover.api.inventory.service.GetTags;
-import com.tru.clover.api.merchant.Device;
-import com.tru.clover.api.merchant.Devices;
-import com.tru.clover.api.merchant.service.GetDevices;
-import com.tru.clover.api.merchant.service.GetOrderTypes;
-import com.tru.clover.api.order.LineItem;
-import com.tru.clover.api.order.Modification;
-import com.tru.clover.api.order.Order;
-import com.tru.clover.api.order.OrderType;
-import com.tru.clover.api.order.service.GetOrders;
-import com.tru.clover.api.order.service.UpdateOrder;
-import com.tru.clover.api.order.service.UpdateOrderLineItem;
+
+import com.trubeacon.cloverandroidapi.app.AppBillingInfo;
+import com.trubeacon.cloverandroidapi.app.service.GetBillingInfo;
+import com.trubeacon.cloverandroidapi.client.error.*;
+import com.trubeacon.cloverandroidapi.client.error.Error;
+import com.trubeacon.cloverandroidapi.client.filter.Filter;
+import com.trubeacon.cloverandroidapi.common.WrappedList;
+import com.trubeacon.cloverandroidapi.inventory.Item;
+import com.trubeacon.cloverandroidapi.inventory.Tag;
+import com.trubeacon.cloverandroidapi.inventory.service.GetTags;
+import com.trubeacon.cloverandroidapi.merchant.Device;
+import com.trubeacon.cloverandroidapi.merchant.Devices;
+import com.trubeacon.cloverandroidapi.merchant.service.GetDevices;
+import com.trubeacon.cloverandroidapi.merchant.service.GetOrderTypes;
+import com.trubeacon.cloverandroidapi.order.LineItem;
+import com.trubeacon.cloverandroidapi.order.Order;
+import com.trubeacon.cloverandroidapi.order.OrderType;
+import com.trubeacon.cloverandroidapi.order.service.GetOrders;
+import com.trubeacon.cloverandroidapi.order.service.UpdateOrder;
+import com.trubeacon.cloverandroidapi.order.service.UpdateOrderLineItem;
 
 import org.joda.time.DateTime;
 import org.joda.time.Seconds;
-import org.joda.time.format.DateTimeFormat;
 
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collections;
 import java.util.Comparator;
-import java.util.Date;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
@@ -177,7 +175,7 @@ public class OrderMonitorData {
             }
 
             @Override
-            public void onFailGetBillingInfo(Error error) {
+            public void onFailGetBillingInfo(com.trubeacon.cloverandroidapi.client.error.Error error) {
                 Log.v("failed getbillinginfo", error.getMessage());
             }
         });
@@ -299,7 +297,7 @@ public class OrderMonitorData {
                             }
 
                             @Override
-                            public void onFailGetOrders(com.tru.clover.api.client.error.Error error) {
+                            public void onFailGetOrders(Error error) {
                                 Log.e("Failed to fetch orders", error.getMessage());
                                 OrderMonitorBroadcaster.sendBroadcast(BroadcastEvent.REFRESH_ORDERS);
                             }
@@ -410,7 +408,7 @@ public class OrderMonitorData {
             }
 
             @Override
-            public void onFailUpdateOrder(com.tru.clover.api.client.error.Error error) {
+            public void onFailUpdateOrder(Error error) {
                 Log.v("failed to update order", error.getMessage());
                 OrderMonitorBroadcaster.sendBroadcast(BroadcastEvent.ORDER_DONE);
             }
@@ -431,7 +429,7 @@ public class OrderMonitorData {
             }
 
             @Override
-            public void onFailUpdateOrder(com.tru.clover.api.client.error.Error error) {
+            public void onFailUpdateOrder(Error error) {
 
                 OrderMonitorBroadcaster.sendBroadcast(BroadcastEvent.ORDER_UNDONE);
                 Log.v("failed to update order", error.getMessage());

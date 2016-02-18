@@ -3,11 +3,6 @@ package com.trubeacon.ordermonitorgui;
 import android.app.Application;
 import android.content.Context;
 
-import com.tru.clover.api.inventory.Item;
-import com.tru.clover.api.inventory.ModifierGroup;
-import com.tru.clover.api.order.Modification;
-
-import java.util.List;
 
 /**
  * Created by Andrew on 5/1/2015.

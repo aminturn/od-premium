@@ -1,26 +1,11 @@
 package com.trubeacon.ordermonitorgui;
 
-import android.app.Fragment;
 import android.app.FragmentManager;
+import android.os.Bundle;
 import android.preference.PreferenceManager;
 import android.support.v7.app.ActionBarActivity;
-import android.os.Bundle;
-import android.util.Log;
-import android.view.LayoutInflater;
 import android.view.Menu;
 import android.view.MenuItem;
-import android.view.ViewGroup;
-import android.widget.FrameLayout;
-import android.widget.HorizontalScrollView;
-import android.widget.LinearLayout;
-import android.widget.RelativeLayout;
-
-import com.tru.clover.api.client.filter.Filter;
-import com.tru.clover.api.common.WrappedList;
-import com.tru.clover.api.order.service.GetOrders;
-import com.tru.clover.api.order.Order;
-
-import org.joda.time.DateTime;
 
 
 public class MainActivity extends ActionBarActivity {

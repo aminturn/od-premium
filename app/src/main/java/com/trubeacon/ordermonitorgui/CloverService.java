@@ -2,10 +2,11 @@ package com.trubeacon.ordermonitorgui;
 
 import android.content.Context;
 
-import com.tru.clover.api.client.RESTService;
-import com.tru.clover.api.client.RESTServiceResolver;
-import com.trubeacon.cloverandroidapi.AndroidRESTService;
+
 import com.trubeacon.cloverandroidapi.ContextResolver;
+import com.trubeacon.cloverandroidapi.client.AndroidRESTService;
+import com.trubeacon.cloverandroidapi.client.RESTService;
+import com.trubeacon.cloverandroidapi.client.RESTServiceResolver;
 
 
 /**
@@ -14,12 +15,11 @@ import com.trubeacon.cloverandroidapi.ContextResolver;
  */
 public class CloverService {
 
-    private static com.tru.clover.api.CloverService cloverService;
+    private static com.trubeacon.cloverandroidapi.CloverService cloverService;
 
-    public static com.tru.clover.api.CloverService getService() {
+    public static com.trubeacon.cloverandroidapi.CloverService getService() {
         if (cloverService == null) {
-            cloverService = new com.tru.clover.api.CloverService.Builder()
-                    .withProduction(false)
+            cloverService = new com.trubeacon.cloverandroidapi.CloverService.Builder()
                     .withRESTServiceResolver(new RESTServiceResolver() {
                         @Override
                         public RESTService getRESTService() {

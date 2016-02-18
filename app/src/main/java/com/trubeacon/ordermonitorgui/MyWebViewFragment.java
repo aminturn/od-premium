@@ -1,24 +1,22 @@
 package com.trubeacon.ordermonitorgui;
 
 import android.app.Fragment;
-import android.content.SharedPreferences;
+import android.app.ProgressDialog;
 import android.graphics.Bitmap;
-import android.net.http.SslError;
+import android.os.Build;
 import android.os.Bundle;
-import android.preference.PreferenceManager;
 import android.support.annotation.Nullable;
-import android.util.Config;
 import android.util.Log;
 import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
-import android.webkit.SslErrorHandler;
 import android.webkit.WebView;
 import android.webkit.WebViewClient;
 
-import com.tru.clover.api.auth.AccessToken;
-import com.tru.clover.api.auth.service.GetAccessToken;
-import com.tru.clover.api.client.error.*;
+import com.trubeacon.cloverandroidapi.auth.AccessToken;
+import com.trubeacon.cloverandroidapi.auth.service.GetAccessToken;
+
+
 
 /**
  * Created by Andrew on 5/20/15.
@@ -35,6 +33,7 @@ public class MyWebViewFragment extends Fragment {
     private static String redirectUri = "https://order-display.trubeacon.com";
     private static String APP_SECRET = "92922db0-c52d-fcca-6035-c8797d6e2626";
     private OrderMonitorData orderMonitorData = OrderMonitorData.getOrderMonitorData();
+    private ProgressDialog progressDialog;
 
     @Nullable
     @Override
@@ -43,14 +42,29 @@ public class MyWebViewFragment extends Fragment {
 
         WebView webView = (WebView) inflater.inflate(R.layout.web_view,container,false);
 
-            // The URL that will fetch the Access Token, Merchant ID, and Employee ID
+        progressDialog = ProgressDialog.show(getActivity(), "", "Connecting to Clover");
+
+        // The URL that will fetch the Access Token, Merchant ID, and Employee ID
+
             String url = "https://clover.com/oauth/authorize" +
                     "?client_id=" + appId +
                     "&redirect_uri=" + redirectUri;
 
             webView.getSettings().setJavaScriptEnabled(true);
+            webView.getSettings().setDomStorageEnabled(true);
+            webView.setLayerType(View.LAYER_TYPE_SOFTWARE, null);
+
+            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.KITKAT) {
+                WebView.setWebContentsDebuggingEnabled(true);
+            }
 
             webView.setWebViewClient(new WebViewClient() {
+
+                @Override
+                public void onPageFinished(WebView view, String url) {
+                    super.onPageFinished(view, url);
+                    progressDialog.dismiss();
+                }
 
                 public void onPageStarted(WebView view, String url, Bitmap favicon) {
 
@@ -67,32 +81,31 @@ public class MyWebViewFragment extends Fragment {
 
                     Log.v("url",url);
 
-                        //CloverService.getService().get
+                    //CloverService.getService().get
                     //CloverService.getService().getAccessToken()
-
 
                     //this will evaluate true if "&code=" appears in the url
                     if (authCodeStart > -1) {
 
                         String authCode = url.substring(authCodeStart + authCodeFragment.length(), url.length());
 
-                        Log.v("access token",authCode);
+                        Log.v("accesstoken",authCode);
 
-                        String clientId = url.substring(clientIdStart+clientIdFragment.length(),authCodeStart);
+                        String clientId = url.substring(clientIdStart+clientIdFragment.length(), authCodeStart);
 
-                        Log.v("client Id",clientId);
+                        Log.v("clientId",clientId);
 
                         String merchantId = url.substring(merchantIdStart + merchantIdFragment.length(), employeeIdStart);
 
                         orderMonitorData.setmId(merchantId);
 
-
+                        Log.v("before","getaccesstoken");
 
                         CloverService.getService().getAccessToken(clientId, APP_SECRET, authCode, new GetAccessToken.GetAccessTokenCallback() {
                             @Override
                             public void onGetAccessToken(AccessToken accessToken) {
 
-                                Log.v("the token is", accessToken.getToken());
+                                Log.v("thetokenis", accessToken.getToken());
 
                                 orderMonitorData.setToken(accessToken.getToken());
 
@@ -101,9 +114,9 @@ public class MyWebViewFragment extends Fragment {
                             }
 
                             @Override
-                            public void onFailGetAccessToken(com.tru.clover.api.client.error.Error error) {
+                            public void onFailGetAccessToken(com.trubeacon.cloverandroidapi.client.error.Error error) {
 
-                                Log.v("failed to fetch token", error.getMessage());
+                                Log.v("failedtofetchtoken", error.getMessage());
 
                             }
                         });
@@ -115,6 +128,7 @@ public class MyWebViewFragment extends Fragment {
 
             // Loads the WebView
             webView.loadUrl(url);
+            android.webkit.CookieManager.getInstance().setAcceptCookie(true);
 
         return webView;
     }

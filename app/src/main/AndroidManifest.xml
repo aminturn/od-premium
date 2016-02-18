@@ -29,7 +29,7 @@
 
         </activity>
 
-        <service android:name="com.trubeacon.cloverandroidapi.AndroidRESTIntentService"/>
+        <service android:name="com.trubeacon.cloverandroidapi.client.AndroidRESTIntentService"/>
 
     </application>
 

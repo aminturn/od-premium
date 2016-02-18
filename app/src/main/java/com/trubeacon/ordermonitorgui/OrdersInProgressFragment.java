@@ -1,29 +1,21 @@
 package com.trubeacon.ordermonitorgui;
 
-import android.animation.LayoutTransition;
 import android.app.AlertDialog;
-import android.app.DialogFragment;
 import android.app.Fragment;
 import android.content.BroadcastReceiver;
 import android.content.Context;
 import android.content.DialogInterface;
 import android.content.Intent;
 import android.content.SharedPreferences;
-import android.graphics.Canvas;
 import android.graphics.Color;
-import android.graphics.ColorFilter;
-import android.graphics.drawable.Drawable;
 import android.media.Ringtone;
 import android.media.RingtoneManager;
 import android.net.Uri;
-import android.opengl.Visibility;
 import android.os.Bundle;
 import android.os.Handler;
 import android.preference.PreferenceManager;
 import android.support.annotation.Nullable;
 import android.support.v7.app.ActionBar;
-import android.text.method.ScrollingMovementMethod;
-import android.transition.Transition;
 import android.util.DisplayMetrics;
 import android.util.Log;
 import android.view.LayoutInflater;
@@ -32,41 +24,33 @@ import android.view.MenuInflater;
 import android.view.MenuItem;
 import android.view.View;
 import android.view.ViewGroup;
-import android.view.ViewParent;
 import android.view.ViewTreeObserver;
 import android.widget.AdapterView;
 import android.widget.Button;
-import android.widget.FrameLayout;
 import android.widget.HorizontalScrollView;
 import android.widget.ImageView;
 import android.widget.LinearLayout;
 import android.widget.ListView;
 import android.widget.RelativeLayout;
-import android.widget.ScrollView;
 import android.widget.TextView;
 
-import com.tru.clover.api.client.error.*;
-import com.tru.clover.api.client.error.Error;
-import com.tru.clover.api.common.WrappedList;
-import com.tru.clover.api.inventory.Modifier;
-import com.tru.clover.api.inventory.Tag;
-import com.tru.clover.api.inventory.service.GetTags;
-import com.tru.clover.api.merchant.Device;
-import com.tru.clover.api.merchant.Devices;
-import com.tru.clover.api.merchant.service.GetDevices;
-import com.tru.clover.api.order.LineItem;
-import com.tru.clover.api.order.Modification;
-import com.tru.clover.api.order.Order;
+import com.trubeacon.cloverandroidapi.client.error.*;
+import com.trubeacon.cloverandroidapi.client.error.Error;
+import com.trubeacon.cloverandroidapi.common.WrappedList;
+import com.trubeacon.cloverandroidapi.inventory.Tag;
+import com.trubeacon.cloverandroidapi.inventory.service.GetTags;
+import com.trubeacon.cloverandroidapi.merchant.Device;
+import com.trubeacon.cloverandroidapi.merchant.Devices;
+import com.trubeacon.cloverandroidapi.merchant.service.GetDevices;
+import com.trubeacon.cloverandroidapi.order.LineItem;
+import com.trubeacon.cloverandroidapi.order.Modification;
+import com.trubeacon.cloverandroidapi.order.Order;
 
 import org.apache.commons.lang3.StringUtils;
 import org.joda.time.DateTime;
 import org.joda.time.Seconds;
 import org.joda.time.format.DateTimeFormat;
-import org.w3c.dom.Text;
 
-import java.lang.reflect.Array;
-import java.text.Format;
-import java.text.SimpleDateFormat;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collections;
@@ -74,10 +58,8 @@ import java.util.Comparator;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
-import java.util.Objects;
 import java.util.Set;
 import java.util.TreeMap;
-import java.util.concurrent.atomic.AtomicBoolean;
 
 public class OrdersInProgressFragment extends Fragment {
 
@@ -267,7 +249,7 @@ public class OrdersInProgressFragment extends Fragment {
                 }
 
                 @Override
-                public void onFailGetDevices(com.tru.clover.api.client.error.Error error) {
+                public void onFailGetDevices(com.trubeacon.cloverandroidapi.client.error.Error error) {
                     Log.v("getdevices failed",error.getMessage());
 
                 }

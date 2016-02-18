@@ -5,7 +5,8 @@ import android.content.Intent;
 import android.content.IntentFilter;
 import android.support.v4.content.LocalBroadcastManager;
 
-import com.tru.clover.api.client.param.Param;
+import com.trubeacon.cloverandroidapi.client.param.Param;
+
 
 /**
  * Created by Andrew on 5/7/15.
