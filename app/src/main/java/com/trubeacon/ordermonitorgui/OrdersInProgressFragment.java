@@ -18,6 +18,7 @@ import android.support.annotation.Nullable;
 import android.support.v7.app.ActionBar;
 import android.util.DisplayMetrics;
 import android.util.Log;
+import android.view.KeyEvent;
 import android.view.LayoutInflater;
 import android.view.Menu;
 import android.view.MenuInflater;
@@ -61,7 +62,7 @@ import java.util.List;
 import java.util.Set;
 import java.util.TreeMap;
 
-public class OrdersInProgressFragment extends Fragment {
+public class OrdersInProgressFragment extends Fragment implements MainActivity.KeyUpCallback {
 
     private List<Order> progressOrdersList = new ArrayList<>();
     private HashMap<String,Order> currentOrderHashMap = new HashMap<String,Order>();
@@ -94,6 +95,9 @@ public class OrdersInProgressFragment extends Fragment {
 
     private List<TextView> countdownTvList = new ArrayList<>();
 
+    private Order lastOrder;
+    private boolean isOrderDoneReceiverRegistered = false;
+
     //**********************************************************************************************
     private Runnable updateCountdown = new Runnable() {
         @Override
@@ -114,7 +118,7 @@ public class OrdersInProgressFragment extends Fragment {
                 }
                 tv.setText(String.valueOf(minutes)+":"+secondsString);
             }
-            countdownHandler.postDelayed(updateCountdown,100);
+            countdownHandler.postDelayed(updateCountdown, 100);
         }
     };
 
@@ -122,6 +126,7 @@ public class OrdersInProgressFragment extends Fragment {
     private Runnable periodicUpdateRunnable = new Runnable() {
         @Override
         public void run() {
+            Log.v("periodic update","runnable");
             orderMonitorData.refreshOrders();
         }
     };
@@ -130,6 +135,7 @@ public class OrdersInProgressFragment extends Fragment {
     private BroadcastReceiver ordersBroadcastReceiver = new BroadcastReceiver() {
         @Override
         public void onReceive(Context context, Intent intent) {
+            Log.v("orders","broadcast receiver");
             progressOrdersList = orderMonitorData.getProgressOrdersList();
             updateOrdersView();
             updateOrderCount(progressOrdersList.size());
@@ -141,6 +147,7 @@ public class OrdersInProgressFragment extends Fragment {
     private BroadcastReceiver lineItemBroadcastReceiver = new BroadcastReceiver() {
         @Override
         public void onReceive(Context context, Intent intent) {
+            Log.v("line item","broadcast receiver");
             OrderMonitorBroadcaster.unregisterReceiver(this);
             OrderMonitorBroadcaster.registerReceiver(ordersBroadcastReceiver, OrderMonitorData.BroadcastEvent.REFRESH_ORDERS);
             periodicUpdateHandler.postDelayed(periodicUpdateRunnable,refreshRateMs);
@@ -151,7 +158,9 @@ public class OrdersInProgressFragment extends Fragment {
     private BroadcastReceiver orderMarkedDoneReceiver = new BroadcastReceiver() {
         @Override
         public void onReceive(Context context, Intent intent) {
+            Log.v("orderdone","receiver");
             OrderMonitorBroadcaster.unregisterReceiver(this);
+            isOrderDoneReceiverRegistered = false;
             OrderMonitorBroadcaster.registerReceiver(ordersBroadcastReceiver, OrderMonitorData.BroadcastEvent.REFRESH_ORDERS);
             periodicUpdateHandler.postDelayed(periodicUpdateRunnable, refreshRateMs);
         }
@@ -161,9 +170,9 @@ public class OrdersInProgressFragment extends Fragment {
     @Override
     public void onResume() {
         super.onResume();
-        periodicUpdateHandler.postDelayed(periodicUpdateRunnable, 0);
-        countdownHandler.postDelayed(updateCountdown, 0);
         OrderMonitorBroadcaster.registerReceiver(ordersBroadcastReceiver, OrderMonitorData.BroadcastEvent.REFRESH_ORDERS);
+        periodicUpdateHandler.post(periodicUpdateRunnable);
+        countdownHandler.post(updateCountdown);
     }
 
     //**********************************************************************************************
@@ -173,6 +182,7 @@ public class OrdersInProgressFragment extends Fragment {
         periodicUpdateHandler.removeCallbacks(periodicUpdateRunnable);
         countdownHandler.removeCallbacks(updateCountdown);
         OrderMonitorBroadcaster.unregisterReceiver(ordersBroadcastReceiver);
+        OrderMonitorBroadcaster.unregisterReceiver(orderMarkedDoneReceiver);
     }
 
     //**********************************************************************************************
@@ -225,6 +235,7 @@ public class OrdersInProgressFragment extends Fragment {
     @Override
     public View onCreateView(LayoutInflater inflater, ViewGroup container, Bundle savedInstanceState) {
 
+        Log.v("oncreateView","oncreateview");
 
         currentOrderHashMap.clear();
 
@@ -553,7 +564,7 @@ public class OrdersInProgressFragment extends Fragment {
                                     removeViewFromHorizLinearLayout(thisOrder.getId());
                                     if (hasLineItems(thisOrder)) {
                                         addViewToHorizLinearLayout(whereIsOrder, thisOrder.getId());
-                                    }else{
+                                    } else {
                                         currentOrderHashMap.remove(thisOrder.getId());
                                         updateOrderCount(currentOrderHashMap.size());
                                     }
@@ -628,9 +639,15 @@ public class OrdersInProgressFragment extends Fragment {
 
                 OrderMonitorBroadcaster.unregisterReceiver(ordersBroadcastReceiver);
                 periodicUpdateHandler.removeCallbacks(periodicUpdateRunnable);
-                OrderMonitorBroadcaster.registerReceiver(orderMarkedDoneReceiver, OrderMonitorData.BroadcastEvent.ORDER_DONE);
+
+                if(!isOrderDoneReceiverRegistered) {
+                    OrderMonitorBroadcaster.registerReceiver(orderMarkedDoneReceiver, OrderMonitorData.BroadcastEvent.ORDER_DONE);
+                    isOrderDoneReceiverRegistered=true;
+                }
 
                 orderMonitorData.markDone((String) v.getTag(), thisOrder);
+
+                lastOrder = thisOrder;
 
                 horizLinearLayout.removeView(overFlowLinearLayout);
 
@@ -767,6 +784,7 @@ public class OrdersInProgressFragment extends Fragment {
     //**********************************************************************************************
     private int indexToDrawView(String orderId){
 
+        //TODO: it's unnecessary to loop like this, just do map.values()
         List<Order> orderList = new ArrayList<>();
 
         for(String key:currentOrderHashMap.keySet()){
@@ -885,7 +903,7 @@ public class OrdersInProgressFragment extends Fragment {
                     removeViewFromHorizLinearLayout(order.getId());
                     int index = indexToDrawView(order.getId());
                     currentOrderHashMap.put(order.getId(),order);
-                    //TODO:get scroll position
+                    //TODO: get scroll position
                     addViewToHorizLinearLayout(index, order.getId());
                     //TODO: reset scroll position, maybe check if its in bounds?
                     //TODO: wait to do this until after the screen has been drawn
@@ -898,6 +916,7 @@ public class OrdersInProgressFragment extends Fragment {
         for(String key:keySet){
             //check if an order was deleted from the station
             if(!progressOrdersList.contains(currentOrderHashMap.get(key))){
+                Log.v("remove","order from hashmap");
                 currentOrderHashMap.remove(key);
                 removeViewFromHorizLinearLayout(key);
             }
@@ -906,7 +925,6 @@ public class OrdersInProgressFragment extends Fragment {
 
     //**********************************************************************************************
     private List<LineItem> sortItemsIntoBins(List<LineItem> lineItemList, Order order){
-        //TODO: sort items by created time
 
         binTreeMap.clear();
 
@@ -1014,4 +1032,134 @@ public class OrdersInProgressFragment extends Fragment {
         return hasLineItems;
     }
 
+
+    //**********************************************************************************************
+    private Order getOrderFromIndex(int index){
+
+        //assume zero-based indexing
+        List<Order> sortedOrders = new ArrayList<>(currentOrderHashMap.values());
+
+        Collections.sort(sortedOrders, new Comparator<Order>() {
+            @Override
+            public int compare(Order order1, Order order2) {
+                if(order1.getCreatedTime()>order2.getCreatedTime()){
+                    return 1;
+                }else if(order1.getCreatedTime()<order2.getCreatedTime()){
+                    return-1;
+                }else{
+                    return 0;
+                }
+            }
+        });
+
+
+        return sortedOrders.get(index);
+    }
+
+
+    //**********************************************************************************************
+    @Override
+    public void keyUp(int keyCode) {
+
+        int orderIndex;
+
+        Log.v("key", String.valueOf(keyCode));
+
+        switch(keyCode){
+            case KeyEvent.KEYCODE_NUMPAD_1:
+            case KeyEvent.KEYCODE_1:
+                orderIndex = 0;
+                break;
+            case KeyEvent.KEYCODE_NUMPAD_2:
+            case KeyEvent.KEYCODE_2:
+                orderIndex = 1;
+                break;
+            case KeyEvent.KEYCODE_NUMPAD_3:
+            case KeyEvent.KEYCODE_3:
+                if(denominatorForWidth>2){
+                    orderIndex = 2;
+                }else{
+                    orderIndex = -1;
+                }
+                break;
+            case KeyEvent.KEYCODE_NUMPAD_4:
+            case KeyEvent.KEYCODE_4:
+                if(denominatorForWidth>3){
+                    orderIndex = 3;
+                }else{
+                    orderIndex=-1;
+                }
+                break;
+            case KeyEvent.KEYCODE_NUMPAD_5:
+            case KeyEvent.KEYCODE_5:
+                if(denominatorForWidth>4){
+                    orderIndex=4;
+                }else{
+                    orderIndex=-1;
+                }
+                break;
+            case KeyEvent.KEYCODE_NUMPAD_6:
+            case KeyEvent.KEYCODE_6:
+                if(denominatorForWidth>5){
+                    orderIndex=5;
+                }else{
+                    orderIndex=-1;
+                }
+                break;
+            case KeyEvent.KEYCODE_DEL:
+                orderIndex = 11;
+                break;
+            default:
+                orderIndex = -1;
+                break;
+        }//end of switch
+
+        Log.v("orderindex",String.valueOf(orderIndex));
+        Log.v("hashmapsize",String.valueOf(currentOrderHashMap.size()));
+
+        if(orderIndex!=-1){
+            if(orderIndex!=11){
+                //bump an order
+                if(orderIndex<currentOrderHashMap.size()) {
+                    //bump an order
+                    Order bumpedOrder = getOrderFromIndex(orderIndex);
+                    bumpOrder(bumpedOrder);
+                    lastOrder = bumpedOrder;
+                }
+            }else{
+                //undo last order
+                if(lastOrder!=null){
+                    orderMonitorData.markUnDone(lastOrder.getId(),lastOrder);
+                    currentOrderHashMap.put(lastOrder.getId(),lastOrder);
+                    int index = indexToDrawView(lastOrder.getId());
+                    addViewToHorizLinearLayout(index,lastOrder.getId());
+                    lastOrder = null;
+                }
+            }
+        }
+    }
+
+    //**********************************************************************************************
+    private void bumpOrder(Order bumpedOrder){
+
+        OrderMonitorBroadcaster.unregisterReceiver(ordersBroadcastReceiver);
+        periodicUpdateHandler.removeCallbacks(periodicUpdateRunnable);
+
+        if(!isOrderDoneReceiverRegistered) {
+            OrderMonitorBroadcaster.registerReceiver(orderMarkedDoneReceiver, OrderMonitorData.BroadcastEvent.ORDER_DONE);
+            isOrderDoneReceiverRegistered=true;
+        }
+
+        orderMonitorData.markDone(bumpedOrder.getId(), bumpedOrder);
+        currentOrderHashMap.remove(bumpedOrder.getId());
+        updateOrderCount(currentOrderHashMap.size());
+
+        LinearLayout linearLayout = (LinearLayout) horizLinearLayout.findViewWithTag(bumpedOrder.getId());
+        Button doneButton = (Button) linearLayout.findViewById(R.id.done_button);
+        TextView countdownText = (TextView) linearLayout.findViewById(R.id.countdown_text);
+
+        buttonList.remove(doneButton);
+        countdownTvList.remove(countdownText);
+        horizLinearLayout.removeView(linearLayout);
+    }
 }

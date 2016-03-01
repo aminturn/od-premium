@@ -81,6 +81,8 @@ public class DoneOrdersFragment extends Fragment {
     private Integer screenWidthDp;
     private OrderMonitorData orderMonitorData = OrderMonitorData.getOrderMonitorData();
 
+    private boolean isOrderUndoneReceiverRegistered = false;
+
     private List<TextView> countdownTvList = new ArrayList<>();
 
     private Runnable updateCountdown = new Runnable() {
@@ -118,6 +120,7 @@ public class DoneOrdersFragment extends Fragment {
         @Override
         public void onReceive(Context context, Intent intent) {
             OrderMonitorBroadcaster.unregisterReceiver(this);
+            isOrderUndoneReceiverRegistered=false;
             OrderMonitorBroadcaster.registerReceiver(ordersBroadcastReceiver, OrderMonitorData.BroadcastEvent.REFRESH_ORDERS);
             periodicUpdateHandler.postDelayed(periodicUpdateRunnable,refreshRateMs);
         }
@@ -156,6 +159,7 @@ public class DoneOrdersFragment extends Fragment {
         periodicUpdateHandler.removeCallbacks(periodicUpdateRunnable);
         countdownHandler.removeCallbacks(updateCountdown);
         OrderMonitorBroadcaster.unregisterReceiver(ordersBroadcastReceiver);
+        OrderMonitorBroadcaster.unregisterReceiver(orderMarkedUndoneReceiver);
     }
 
     @Override
@@ -458,7 +462,11 @@ public class DoneOrdersFragment extends Fragment {
 
                 OrderMonitorBroadcaster.unregisterReceiver(ordersBroadcastReceiver);
                 periodicUpdateHandler.removeCallbacks(periodicUpdateRunnable);
-                OrderMonitorBroadcaster.registerReceiver(orderMarkedUndoneReceiver,OrderMonitorData.BroadcastEvent.ORDER_UNDONE);
+
+                if(!isOrderUndoneReceiverRegistered) {
+                    OrderMonitorBroadcaster.registerReceiver(orderMarkedUndoneReceiver, OrderMonitorData.BroadcastEvent.ORDER_UNDONE);
+                    isOrderUndoneReceiverRegistered=true;
+                }
 
                 orderMonitorData.markUnDone((String) v.getTag(), thisOrder);
 

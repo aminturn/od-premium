@@ -7,10 +7,8 @@ import android.preference.PreferenceManager;
 import android.util.Log;
 import android.widget.Toast;
 
-
 import com.trubeacon.cloverandroidapi.app.AppBillingInfo;
 import com.trubeacon.cloverandroidapi.app.service.GetBillingInfo;
-import com.trubeacon.cloverandroidapi.client.error.*;
 import com.trubeacon.cloverandroidapi.client.error.Error;
 import com.trubeacon.cloverandroidapi.client.filter.Filter;
 import com.trubeacon.cloverandroidapi.common.WrappedList;
@@ -57,9 +55,10 @@ public class OrderMonitorData {
     private static boolean orderTypesUpdated;
     private static AppBillingInfo.Status billingStatus;
     private static String tierId;
+    private static HashMap<String,Order> ordersHashMap = new HashMap<String, Order>();
+    private static long lastModifiedTime;
 
-
-    //75314KYGAMC4P
+//75314KYGAMC4P
 
 //Scooters merchant credentials
 //    private static String mId = "75314KYGAMC4P";
@@ -81,6 +80,10 @@ public class OrderMonitorData {
         if(orderMonitorData==null){
             orderMonitorData = new OrderMonitorData();
             mContext = OrderMonitorGUI.getAppContext();
+            SharedPreferences sp = PreferenceManager.getDefaultSharedPreferences(mContext);
+            String ageOfOrdersStr = sp.getString(mContext.getString(R.string.age_of_orders_pref), mContext.getString(R.string.str0_5));
+            long ageOfOrdersMillis = (long) (Float.parseFloat(ageOfOrdersStr)*60*60*1000);
+            lastModifiedTime = DateTime.now().getMillis()-ageOfOrdersMillis;
         }
         SharedPreferences sp = PreferenceManager.getDefaultSharedPreferences(mContext);
         mId = sp.getString(mContext.getString(R.string.merchant_id_key),"");
@@ -144,6 +147,10 @@ public class OrderMonitorData {
         SharedPreferences sp = PreferenceManager.getDefaultSharedPreferences(mContext);
         sp.edit().putString(mContext.getString(R.string.saved_token_key),token).apply();
         OrderMonitorData.token = token;
+    }
+
+    public static void setLastModified(long lastModified){
+        lastModifiedTime = lastModified;
     }
 
     //**********************************************************************************************
@@ -253,17 +260,10 @@ public class OrderMonitorData {
     public void refreshOrders(){
 
         SharedPreferences sp = PreferenceManager.getDefaultSharedPreferences(mContext);
-        String ageOfOrdersStr = sp.getString(mContext.getString(R.string.age_of_orders_pref), mContext.getString(R.string.age_of_orders_pref));
-        float ageOfOrdersHours = Float.parseFloat(ageOfOrdersStr);
-        int ageOfOrdersMinutes = (int) (ageOfOrdersHours*60);
-
-        DateTime start = DateTime.now().minusMinutes(ageOfOrdersMinutes);
-        DateTime stop = DateTime.now().plusMinutes(10);
 
         if(mId.equals("")||token.equals("")){
             Toast.makeText(OrderMonitorGUI.getAppContext(), "Please connect to your Clover account from the Settings menu", Toast.LENGTH_LONG).show();
         }else {
-
 
             Long lastBillingCheck = sp.getLong(mContext.getString(R.string.last_billing_check), 0);
             DateTime lastBillingDateTime = new DateTime(lastBillingCheck);
@@ -277,7 +277,6 @@ public class OrderMonitorData {
             }
 
             if (billingStatus.equals(AppBillingInfo.Status.ACTIVE)&&tierId.equals(mContext.getString(R.string.advanced_tier_id))) {
-                // fetch all orders from the last 6 months
                 CloverService.getService().getOrders(mId, token, new GetOrders.GetOrdersCallback() {
 
                             @Override
@@ -285,15 +284,13 @@ public class OrderMonitorData {
 
                                 Log.v("orders fetched", String.valueOf(orders.size()));
 
-                                List<Order> allOrders = new ArrayList<Order>(orders);
-                                updateProgressOrdersList(allOrders);
-
-                                //show oldest orders first, should come in chronological order with most recent order first, so reverse the list
-                                Collections.reverse(progressOrdersList);
-                                Collections.reverse(doneOrdersList);
-
-                                OrderMonitorBroadcaster.sendBroadcast(BroadcastEvent.REFRESH_ORDERS);
-
+                                    for (Order order : orders) {
+                                        if (order.getModifiedTime() > lastModifiedTime) {
+                                            lastModifiedTime = order.getModifiedTime();
+                                        }
+                                        ordersHashMap.put(order.getId(), order);
+                                    }
+                                    updateProgressOrdersList();
                             }
 
                             @Override
@@ -303,8 +300,9 @@ public class OrderMonitorData {
                             }
 
                         },
-                        Filter.filter("createdTime", Filter.Comparator.GREATER_THAN, start.getMillis()),
-                        Filter.filter("createdTime", Filter.Comparator.LESS_THAN, stop.getMillis()));
+
+                        Filter.filter("modifiedTime", Filter.Comparator.GREATER_THAN, lastModifiedTime));
+
             }else {
                 if(tierId.equals(mContext.getString(R.string.advanced_tier_id))){
                     Toast.makeText(mContext, "Please check your billing status", Toast.LENGTH_LONG).show();
@@ -318,6 +316,7 @@ public class OrderMonitorData {
             }
         }
     }
+
 
     //**********************************************************************************************
     public void markAllOrdersDone(){
@@ -454,14 +453,16 @@ public class OrderMonitorData {
         });
     }
 
-    //**********************************************************************************************
-    private void updateProgressOrdersList(List<Order> allOrders){
 
-        //TODO: sort items
-        if(allOrders!=null) {
+    //**********************************************************************************************
+    private void updateProgressOrdersList(){
+
+        List<Order> allOrders = new ArrayList<>(ordersHashMap.values());
 
             boolean hasLineItems;
             boolean onlyShowPaid;
+            boolean orderAgedOut;
+            long ageOfOrdersMillis;
             SharedPreferences sp = PreferenceManager.getDefaultSharedPreferences(mContext);
 
             String[] defStrings = new String[1];
@@ -470,46 +471,58 @@ public class OrderMonitorData {
             Set<String> orderTypesSelected = sp.getStringSet(mContext.getString(R.string.order_type_pref), defset);
             Set<String> devicesSelected = sp.getStringSet(mContext.getString(R.string.devices_pref),defset);
             onlyShowPaid = sp.getBoolean(mContext.getString(R.string.after_paid_pref),false);
+            String ageOfOrdersStr = sp.getString(mContext.getString(R.string.age_of_orders_pref), mContext.getString(R.string.str0_5));
+            ageOfOrdersMillis = (long) (Float.parseFloat(ageOfOrdersStr)*60*60*1000);
+
             //filter out order if it doesn't have line items
 
             List<Order> filteredList = new ArrayList<>();
 
             for(Order order:allOrders) {
 
-                hasLineItems=false;
+                orderAgedOut = order.getCreatedTime()<(DateTime.now().getMillis()-ageOfOrdersMillis);
 
-                if(order.getLineItems()!=null){
-                    for (LineItem li : order.getLineItems()) {
-                        if (showLineItem(li.getName(),li)) {
-                            hasLineItems = true;
+                if(orderAgedOut){
+                    ordersHashMap.remove(order.getId());
+                }
+
+                if(!orderAgedOut) {
+
+                    hasLineItems = false;
+
+                    if (order.getLineItems() != null) {
+                        for (LineItem li : order.getLineItems()) {
+                            if (showLineItem(li.getName(), li)) {
+                                hasLineItems = true;
+                            }
+                        }
+                    }
+
+                    String deviceId;
+                    if (order.getDevice() == null) {
+                        deviceId = mContext.getString(R.string.no_device_string);
+                    } else {
+                        deviceId = order.getDevice().getId();
+                    }
+
+                    if (onlyShowPaid) {
+                        if (order.getOrderType() == null) {
+                            if ((devicesSelected.contains(deviceId) || deviceId.equals(mContext.getString(R.string.no_device_string))) && hasLineItems && order.getState().equals(mContext.getString(R.string.locked))) {
+                                filteredList.add(order);
+                            }
+                        } else if (orderTypesSelected.contains(order.getOrderType().getLabel()) && (devicesSelected.contains(deviceId) || deviceId.equals(mContext.getString(R.string.no_device_string))) && hasLineItems && order.getState().equals(mContext.getString(R.string.locked))) {
+                            filteredList.add(order);
+                        }
+                    } else {
+                        if (order.getOrderType() == null) {
+                            if ((devicesSelected.contains(deviceId) || deviceId.equals(mContext.getString(R.string.no_device_string))) && hasLineItems) {
+                                filteredList.add(order);
+                            }
+                        } else if (orderTypesSelected.contains(order.getOrderType().getLabel()) && (devicesSelected.contains(deviceId) || deviceId.equals(mContext.getString(R.string.no_device_string))) && hasLineItems) {
+                            filteredList.add(order);
                         }
                     }
                 }
-
-                String deviceId;
-                if(order.getDevice()==null){
-                    deviceId =mContext.getString(R.string.no_device_string);
-                }else{
-                    deviceId = order.getDevice().getId();
-                }
-
-               if(onlyShowPaid) {
-                   if (order.getOrderType() == null) {
-                       if ((devicesSelected.contains(deviceId)||deviceId.equals(mContext.getString(R.string.no_device_string))) && hasLineItems&&order.getState().equals(mContext.getString(R.string.locked))) {
-                           filteredList.add(order);
-                       }
-                   } else if (orderTypesSelected.contains(order.getOrderType().getLabel()) && (devicesSelected.contains(deviceId)||deviceId.equals(mContext.getString(R.string.no_device_string))) && hasLineItems&&order.getState().equals(mContext.getString(R.string.locked))) {
-                       filteredList.add(order);
-                   }
-               }else{
-                   if (order.getOrderType() == null) {
-                       if ((devicesSelected.contains(deviceId)||deviceId.equals(mContext.getString(R.string.no_device_string))) && hasLineItems) {
-                           filteredList.add(order);
-                       }
-                   } else if (orderTypesSelected.contains(order.getOrderType().getLabel()) && (devicesSelected.contains(deviceId)||deviceId.equals(mContext.getString(R.string.no_device_string))) && hasLineItems) {
-                       filteredList.add(order);
-                   }
-               }
 
             }
 
@@ -541,9 +554,8 @@ public class OrderMonitorData {
                 }
             });
 
-        }
+        OrderMonitorBroadcaster.sendBroadcast(BroadcastEvent.REFRESH_ORDERS);
     }
-
 
     //**********************************************************************************************
     public enum BroadcastEvent{

@@ -153,6 +153,11 @@ public class OrderMonitorPreferences extends PreferenceFragment implements Share
         else if(s.equals(getString(R.string.age_of_orders_pref))){
             Preference ageOfOrdersPref = findPreference(s);
             ageOfOrdersPref.setSummary(sharedPreferences.getString(s,"") + " Hour(s)");
+
+            //reset the lastmodified time when this is changed
+            String ageOfOrdersHrsStr = sharedPreferences.getString(getString(R.string.age_of_orders_pref),getString(R.string.str0_5));
+            long ageOfOrdersMillis = (long) (Float.parseFloat(ageOfOrdersHrsStr)*60*60*1000);
+            orderMonitorData.setLastModified(ageOfOrdersMillis);
         }
     }
 

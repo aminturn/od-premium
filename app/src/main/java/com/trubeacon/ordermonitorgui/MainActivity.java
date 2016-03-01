@@ -1,14 +1,23 @@
 package com.trubeacon.ordermonitorgui;
 
+import android.app.Fragment;
 import android.app.FragmentManager;
 import android.os.Bundle;
 import android.preference.PreferenceManager;
 import android.support.v7.app.ActionBarActivity;
+import android.view.KeyEvent;
 import android.view.Menu;
 import android.view.MenuItem;
 
 
 public class MainActivity extends ActionBarActivity {
+
+    private KeyUpCallback keyUpCallback;
+
+
+    public interface KeyUpCallback{
+        void keyUp(int keyCode);
+    }
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -19,8 +28,14 @@ public class MainActivity extends ActionBarActivity {
 
         if(savedInstanceState==null) {
             getFragmentManager().beginTransaction().add(R.id.container, new OrdersInProgressFragment()).commit();
+            getFragmentManager().executePendingTransactions();
         }
 
+        Fragment topFragment = getFragmentManager().findFragmentById(R.id.container);
+
+        if(topFragment instanceof OrdersInProgressFragment){
+            keyUpCallback = (KeyUpCallback) topFragment;
+        }
     }
 
     @Override
@@ -40,7 +55,9 @@ public class MainActivity extends ActionBarActivity {
             return true;
         }
         else if (id==R.id.action_orders_in_progress){
-            getFragmentManager().beginTransaction().replace(R.id.container,new OrdersInProgressFragment()).addToBackStack("").commit();
+            OrdersInProgressFragment ordersInProgressFragment = new OrdersInProgressFragment();
+            keyUpCallback = ordersInProgressFragment;
+            getFragmentManager().beginTransaction().replace(R.id.container,ordersInProgressFragment).addToBackStack("").commit();
             return true;
         }
         else if(id == R.id.action_done_orders){
@@ -58,5 +75,15 @@ public class MainActivity extends ActionBarActivity {
             } else {
                 super.onBackPressed();
             }
+    }
+
+    @Override
+    public boolean onKeyUp(int keyCode, KeyEvent event) {
+
+        Fragment topFragment = getFragmentManager().findFragmentById(R.id.container);
+        if(topFragment instanceof OrdersInProgressFragment){
+            keyUpCallback.keyUp(keyCode);
+        }
+        return true;
     }
 }
