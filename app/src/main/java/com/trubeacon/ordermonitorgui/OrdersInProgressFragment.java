@@ -35,7 +35,6 @@ import android.widget.ListView;
 import android.widget.RelativeLayout;
 import android.widget.TextView;
 
-import com.trubeacon.cloverandroidapi.client.error.*;
 import com.trubeacon.cloverandroidapi.client.error.Error;
 import com.trubeacon.cloverandroidapi.common.WrappedList;
 import com.trubeacon.cloverandroidapi.inventory.Tag;
@@ -61,6 +60,8 @@ import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
 import java.util.TreeMap;
+
+//TODO: add a number to the order header indicating which key bumps the order
 
 public class OrdersInProgressFragment extends Fragment implements MainActivity.KeyUpCallback {
 
@@ -336,7 +337,6 @@ public class OrdersInProgressFragment extends Fragment implements MainActivity.K
         actionBar.setTitle(titleStr);
     }
 
-
     //**********************************************************************************************
     private void addViewToHorizLinearLayout(int i,String orderId){
 
@@ -345,7 +345,6 @@ public class OrdersInProgressFragment extends Fragment implements MainActivity.K
                 ViewGroup.LayoutParams.MATCH_PARENT);
 
         SharedPreferences sp = PreferenceManager.getDefaultSharedPreferences(getActivity());
-
 
         final Order thisOrder = currentOrderHashMap.get(orderId);
 
@@ -361,7 +360,6 @@ public class OrdersInProgressFragment extends Fragment implements MainActivity.K
             origin = orderMonitorData.getDeviceNamefromId(thisOrder.getDevice().getId());
         }
 
-
         Log.v("client created time", String.valueOf(thisOrder.getClientCreatedTime()));
         Log.v("order created time", String.valueOf(thisOrder.getCreatedTime()));
 
@@ -371,7 +369,7 @@ public class OrdersInProgressFragment extends Fragment implements MainActivity.K
         //add at position in progress orders list
         horizLinearLayout.addView(overFlowLinearLayout, i);
 
-        mLayoutInflater.inflate(R.layout.order_item_layout1, overFlowLinearLayout,true);
+        mLayoutInflater.inflate(R.layout.order_item_layout1, overFlowLinearLayout, true);
         overFlowLinearLayout.setTag(thisOrder.getId());
 
         final RelativeLayout relativeLayout = (RelativeLayout) overFlowLinearLayout.findViewById(R.id.order_relative_layout);
@@ -426,7 +424,7 @@ public class OrdersInProgressFragment extends Fragment implements MainActivity.K
 
         if(showTimeTicket){
             if(StringUtils.isNumeric(orderTitle)) {
-                timeCreatedString = "#" + orderTitle + " " + DateTimeFormat.forPattern("hh:mm a").print(orderCreated);
+                timeCreatedString = "#" + orderTitle + "   " + DateTimeFormat.forPattern("hh:mm a").print(orderCreated);
             }else{
                 timeCreatedString = DateTimeFormat.forPattern("hh:mm a").print(orderCreated);
             }
@@ -567,6 +565,9 @@ public class OrdersInProgressFragment extends Fragment implements MainActivity.K
                                     } else {
                                         currentOrderHashMap.remove(thisOrder.getId());
                                         updateOrderCount(currentOrderHashMap.size());
+                                        buttonList.remove(doneButton);
+                                        countdownTvList.remove(countdownText);
+                                        updateButtonKeys();
                                     }
                                 }
                             }
@@ -624,6 +625,9 @@ public class OrdersInProgressFragment extends Fragment implements MainActivity.K
                     }else{
                         currentOrderHashMap.remove(thisOrder.getId());
                         updateOrderCount(currentOrderHashMap.size());
+                        buttonList.remove(doneButton);
+                        countdownTvList.remove(countdownText);
+                        updateButtonKeys();
                     }
                 }
             }
@@ -652,11 +656,10 @@ public class OrdersInProgressFragment extends Fragment implements MainActivity.K
                 horizLinearLayout.removeView(overFlowLinearLayout);
 
                 currentOrderHashMap.remove(thisOrder.getId());
-
                 updateOrderCount(currentOrderHashMap.size());
-
                 buttonList.remove(doneButton);
                 countdownTvList.remove(countdownText);
+                updateButtonKeys();
             }
         });
 
@@ -760,6 +763,7 @@ public class OrdersInProgressFragment extends Fragment implements MainActivity.K
                                 } else {
                                     currentOrderHashMap.remove(order.getId());
                                     updateOrderCount(currentOrderHashMap.size());
+                                    updateButtonKeys();
                                 }
                             }
                         }
@@ -784,12 +788,7 @@ public class OrdersInProgressFragment extends Fragment implements MainActivity.K
     //**********************************************************************************************
     private int indexToDrawView(String orderId){
 
-        //TODO: it's unnecessary to loop like this, just do map.values()
-        List<Order> orderList = new ArrayList<>();
-
-        for(String key:currentOrderHashMap.keySet()){
-            orderList.add(currentOrderHashMap.get(key));
-        }
+        List<Order> orderList = new ArrayList<>(currentOrderHashMap.values());
 
         Collections.sort(orderList, new Comparator<Order>() {
             @Override
@@ -872,6 +871,32 @@ public class OrdersInProgressFragment extends Fragment implements MainActivity.K
         return false;
     }
 
+    //**********************************************************************************************
+    private void updateButtonKeys(){
+        //add indicators to buttons for keypad bumping
+        Log.v("update","button keys");
+        List<Button> cleanUpButtonList = new ArrayList<>();
+
+        for(Button button: buttonList){
+            String orderId = (String) button.getTag();
+            int index = indexToDrawView(orderId);
+            if(index==-1){
+                //there is no longer an order associated with this button
+                cleanUpButtonList.add(button);
+            }else {
+                if (index < denominatorForWidth) {
+                    button.setText("DONE (" + String.valueOf(index + 1) + ")");
+                } else {
+                    button.setText("DONE");
+                }
+            }
+        }
+
+        for(Button button:cleanUpButtonList){
+            Log.v("buttonList", "cleanup");
+            buttonList.remove(button);
+        }
+    }
 
     //**********************************************************************************************
     private void updateOrdersView() {
@@ -896,6 +921,7 @@ public class OrdersInProgressFragment extends Fragment implements MainActivity.K
                 currentOrderHashMap.put(order.getId(),order);
                 int index = indexToDrawView(order.getId());
                 addViewToHorizLinearLayout(index,order.getId());
+                updateButtonKeys();
 
             }else{
                 //view should have been added, check to see if it needs to be updated
@@ -905,6 +931,7 @@ public class OrdersInProgressFragment extends Fragment implements MainActivity.K
                     currentOrderHashMap.put(order.getId(),order);
                     //TODO: get scroll position
                     addViewToHorizLinearLayout(index, order.getId());
+                    updateButtonKeys();
                     //TODO: reset scroll position, maybe check if its in bounds?
                     //TODO: wait to do this until after the screen has been drawn
                 }
@@ -916,9 +943,10 @@ public class OrdersInProgressFragment extends Fragment implements MainActivity.K
         for(String key:keySet){
             //check if an order was deleted from the station
             if(!progressOrdersList.contains(currentOrderHashMap.get(key))){
-                Log.v("remove","order from hashmap");
+                Log.v("remove", "order from hashmap");
                 currentOrderHashMap.remove(key);
                 removeViewFromHorizLinearLayout(key);
+                updateButtonKeys();
             }
         }
     }
@@ -1042,11 +1070,11 @@ public class OrdersInProgressFragment extends Fragment implements MainActivity.K
         Collections.sort(sortedOrders, new Comparator<Order>() {
             @Override
             public int compare(Order order1, Order order2) {
-                if(order1.getCreatedTime()>order2.getCreatedTime()){
+                if (order1.getCreatedTime() > order2.getCreatedTime()) {
                     return 1;
-                }else if(order1.getCreatedTime()<order2.getCreatedTime()){
-                    return-1;
-                }else{
+                } else if (order1.getCreatedTime() < order2.getCreatedTime()) {
+                    return -1;
+                } else {
                     return 0;
                 }
             }
@@ -1133,6 +1161,7 @@ public class OrdersInProgressFragment extends Fragment implements MainActivity.K
                     currentOrderHashMap.put(lastOrder.getId(),lastOrder);
                     int index = indexToDrawView(lastOrder.getId());
                     addViewToHorizLinearLayout(index,lastOrder.getId());
+                    updateButtonKeys();
                     lastOrder = null;
                 }
             }
@@ -1161,5 +1190,7 @@ public class OrdersInProgressFragment extends Fragment implements MainActivity.K
         buttonList.remove(doneButton);
         countdownTvList.remove(countdownText);
         horizLinearLayout.removeView(linearLayout);
+        updateButtonKeys();
+
     }
 }
